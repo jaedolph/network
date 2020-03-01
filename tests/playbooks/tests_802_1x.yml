@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: BSD-3-Clause
+---
+- hosts: all
+  vars:
+    interface: 802-1x-test
+    type: veth
+  tasks:
+    - name: "INIT: 802_1x tests"
+      debug:
+        msg: "##################################################"
+    - include_tasks: tasks/show-interfaces.yml
+    - include_tasks: tasks/manage-test-interface.yml
+      vars:
+        state: present
+    - include_tasks: tasks/assert-device_present.yml
+    - block:
+        - name: "TEST: I can create a profile with 802.1x"
+          debug:
+            msg: "##################################################"
+        - import_role:
+            name: linux-system-roles.network
+          vars:
+            network_connections:
+              - name: "{{ interface }}"
+                state: up
+                type: ethernet
+                ip:
+                  dhcp4: "no"
+                  auto6: "no"
+                # "wait: 0" is required as the connection will fail to activate.
+                # The test environment doesn't have an actual 802.1x EAP provider.
+                wait: 0
+                802.1x:
+                  identity: myhost
+                  private-key: /etc/pki/tls/client.key
+                  private-key-password: "p@55w0rD"
+                  private-key-password-flags:
+                  - "none"
+                  client-cert: /etc/pki/tls/client.pem
+                  ca-cert:  /etc/pki/tls/cacert.pem
+        - name: Get nmcli output
+          command: "nmcli con show {{ interface }}"
+          register: nmcli_output
+        - name: Assert 802.1x options are set
+          assert:
+            that:
+              - "'802-1x.private-key:                     /etc/pki/tls/client.key' in nmcli_output.stdout_lines"
+              - "'802-1x.private-key-password:            <hidden>' in nmcli_output.stdout_lines"
+              - "'802-1x.private-key-password-flags:      0 (none)' in nmcli_output.stdout_lines"
+              - "'802-1x.client-cert:                     /etc/pki/tls/client.pem' in nmcli_output.stdout_lines"
+              - "'802-1x.ca-cert:                         /etc/pki/tls/cacert.pem' in nmcli_output.stdout_lines"
+      always:
+        - block:
+            - import_role:
+                name: linux-system-roles.network
+              vars:
+                network_connections:
+                  - name: "{{ interface }}"
+                    persistent_state: absent
+                    state: down
+              ignore_errors: true
+            - include_tasks: tasks/manage-test-interface.yml
+              vars:
+                state: absent
+          tags:
+            - "tests::cleanup"

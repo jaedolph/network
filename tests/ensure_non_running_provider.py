@@ -21,6 +21,7 @@ IGNORE = [
     "tests_vlan_mtu_nm.yml",
     "tests_ethtool_features_initscripts.yml",
     "tests_ethtool_features_nm.yml",
+    "tests_802_1x_nm.yml",
 ]
 
 OTHER_PLAYBOOK = """
