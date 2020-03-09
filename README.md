@@ -417,11 +417,11 @@ Currently, NetworkManager is the only supported provider and EAP-TLS is the only
 
 SSL certificates and keys must be deployed on the host prior to running the role.
 
-* `eap` (required)
+* `eap`
 
     The allowed EAP method to be used when authenticating to the network with 802.1x.
 
-    Currently, `tls` is the only accepted value.
+    Currently, `tls` is the default and the only accepted value.
 
 * `identity` (required)
 
@@ -449,7 +449,7 @@ SSL certificates and keys must be deployed on the host prior to running the role
 
     See NetworkManager documentation on "Secret flag types" more details (`man 5 nm-settings`).
 
- * `client-cert`
+ * `client-cert` (required)
 
     Absolute path to the client's PEM encoded certificate used for 802.1x authentication.
 
@@ -461,8 +461,6 @@ SSL certificates and keys must be deployed on the host prior to running the role
 
     If set to `True`, NetworkManager will use the system's trusted ca certificates to verify.
     the EAP server.
-
-    This setting will have no effect if `network_provider: initscripts` is used.
 
 Examples of Options
 -------------------
