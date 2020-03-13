@@ -3,18 +3,23 @@
 - hosts: all
   vars:
     interface: 802-1x-test
-    type: veth
   tasks:
-    - name: "INIT: 802_1x tests"
+    - name: "INIT: 802.1x tests"
       debug:
         msg: "##################################################"
-    - include_tasks: tasks/show-interfaces.yml
-    - include_tasks: tasks/manage-test-interface.yml
-      vars:
-        state: present
-    - include_tasks: tasks/assert-device_present.yml
+    - include_tasks: tasks/setup-802_1x_server.yml
+    - name: Copy client certs
+      copy:
+        src: "{{ item }}"
+        dest: "/etc/pki/tls/{{ item }}"
+        mode: 0644
+      with_items:
+      - client.key
+      - client.key.nocrypt
+      - client.pem
+      - cacert.pem
     - block:
-        - name: "TEST: I can create a profile with 802.1x"
+        - name: "TEST: 802.1x profile with private key password and ca cert"
           debug:
             msg: "##################################################"
         - import_role:
@@ -22,33 +27,65 @@
           vars:
             network_connections:
               - name: "{{ interface }}"
+                interface_name: veth2
                 state: up
                 type: ethernet
                 ip:
+                  address:
+                    - 10.1.1.12/24
                   dhcp4: "no"
                   auto6: "no"
-                # "wait: 0" is required as the connection will fail to activate.
-                # The test environment doesn't have an actual 802.1x EAP provider.
-                wait: 0
                 802.1x:
                   identity: myhost
+                  eap: tls
                   private-key: /etc/pki/tls/client.key
-                  private-key-password: "p@55w0rD"
+                  private-key-password: test
                   private-key-password-flags:
-                  - "none"
+                  - none
                   client-cert: /etc/pki/tls/client.pem
                   ca-cert:  /etc/pki/tls/cacert.pem
-        - name: Get nmcli output
-          command: "nmcli con show {{ interface }}"
-          register: nmcli_output
-        - name: Assert 802.1x options are set
-          assert:
-            that:
-              - "'802-1x.private-key:                     /etc/pki/tls/client.key' in nmcli_output.stdout_lines"
-              - "'802-1x.private-key-password:            <hidden>' in nmcli_output.stdout_lines"
-              - "'802-1x.private-key-password-flags:      0 (none)' in nmcli_output.stdout_lines"
-              - "'802-1x.client-cert:                     /etc/pki/tls/client.pem' in nmcli_output.stdout_lines"
-              - "'802-1x.ca-cert:                         /etc/pki/tls/cacert.pem' in nmcli_output.stdout_lines"
+        - name: "TEST: I can ping the EAP server"
+          shell: ping -c1 10.1.1.11
+        - import_role:
+            name: linux-system-roles.network
+          vars:
+            network_connections:
+              - name: "{{ interface }}"
+                persistent_state: absent
+                state: absent
+        - name: "TEST: 802.1x profile with unencrypted private key and system ca certs"
+          debug:
+            msg: "##################################################"
+        - name: Copy cacert to system truststore
+          copy:
+            src: cacert.pem
+            dest: /etc/pki/ca-trust/source/anchors/cacert.pem
+            mode: 0644
+        - name: Update ca trust
+          shell: update-ca-trust
+        - import_role:
+            name: linux-system-roles.network
+          vars:
+            network_connections:
+              - name: "{{ interface }}"
+                interface_name: veth2
+                state: up
+                type: ethernet
+                ip:
+                  address:
+                    - 10.1.1.12/24
+                  dhcp4: "no"
+                  auto6: "no"
+                802.1x:
+                  identity: myhost
+                  eap: tls
+                  private-key: /etc/pki/tls/client.key.nocrypt
+                  client-cert: /etc/pki/tls/client.pem
+                  private-key-password-flags:
+                    - not-required
+                  system-ca-certs: True
+        - name: "TEST: I can ping the EAP server"
+          shell: ping -c1 10.1.1.11
       always:
         - block:
             - import_role:
@@ -57,10 +94,11 @@
                 network_connections:
                   - name: "{{ interface }}"
                     persistent_state: absent
-                    state: down
+                    state: absent
+                  - name: br1
+                    persistent_state: absent
+                    state: absent
               ignore_errors: true
-            - include_tasks: tasks/manage-test-interface.yml
-              vars:
-                state: absent
+            - include_tasks: tasks/cleanup-802_1x_server.yml
           tags:
             - "tests::cleanup"

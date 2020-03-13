@@ -459,8 +459,7 @@ SSL certificates and keys must be deployed on the host prior to running the role
 
   * `system-ca-certs`
 
-    If set to `True`, NetworkManager will use the system's trusted ca certificates to verify.
-    the EAP server.
+    If set to `True`, NetworkManager will use the system's trusted ca certificates to verify the EAP server.
 
 Examples of Options
 -------------------
@@ -664,6 +663,7 @@ network_connections:
     type: ethernet
     802.1x:
       identity: myhost
+      eap: tls
       private-key: /etc/pki/tls/client.key
       # recommend vault encrypting the private key password
       # see https://docs.ansible.com/ansible/latest/user_guide/vault.html
