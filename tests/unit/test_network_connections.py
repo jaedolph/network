@@ -155,6 +155,7 @@ class TestValidator(unittest.TestCase):
             "mac": None,
             "master": None,
             "802.1x": None,
+            "wireless": None,
             "mtu": None,
             "name": "5",
             "parent": None,
@@ -251,7 +252,7 @@ class TestValidator(unittest.TestCase):
                 continue
             if "type" not in connection:
                 continue
-            if connection["type"] in ["macvlan"] or connection["802.1x"]:
+            if connection["type"] in ["macvlan", "wireless"] or connection["802.1x"]:
                 # initscripts do not support this type. Skip the test.
                 continue
             content_current = kwargs.get("initscripts_content_current", None)
@@ -398,6 +399,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
@@ -449,6 +451,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
@@ -494,6 +497,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
@@ -582,6 +586,7 @@ class TestValidator(unittest.TestCase):
                     "mac": "52:54:00:44:9f:ba",
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": 1450,
                     "name": "prod1",
                     "parent": None,
@@ -644,6 +649,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "prod1",
                     "parent": None,
@@ -708,6 +714,7 @@ class TestValidator(unittest.TestCase):
                     "mac": "52:54:00:44:9f:ba",
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": 1450,
                     "name": "prod1",
                     "parent": None,
@@ -764,6 +771,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "prod.100",
                     "parent": "prod1",
@@ -847,6 +855,7 @@ class TestValidator(unittest.TestCase):
                     "mac": "52:54:00:44:9f:ba",
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": 1450,
                     "name": "prod1",
                     "parent": None,
@@ -903,6 +912,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "prod.100",
                     "parent": "prod1",
@@ -981,6 +991,7 @@ class TestValidator(unittest.TestCase):
                     "mac": "33:24:10:24:2f:b9",
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": 1450,
                     "name": "eth0-parent",
                     "parent": None,
@@ -1032,6 +1043,7 @@ class TestValidator(unittest.TestCase):
                     "macvlan": {"mode": "bridge", "promiscuous": True, "tap": False},
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "veth0.0",
                     "parent": "eth0-parent",
@@ -1083,6 +1095,7 @@ class TestValidator(unittest.TestCase):
                     "macvlan": {"mode": "passthru", "promiscuous": False, "tap": True},
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "veth0.1",
                     "parent": "eth0-parent",
@@ -1169,6 +1182,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "prod2",
                     "parent": None,
@@ -1206,6 +1220,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": "prod2",
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "prod2-slave1",
                     "parent": None,
@@ -1267,6 +1282,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "bond1",
                     "parent": None,
@@ -1313,6 +1329,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "bond1",
                     "parent": None,
@@ -1369,6 +1386,7 @@ class TestValidator(unittest.TestCase):
                     "mac": "aa:bb:cc:dd:ee:ff",
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
@@ -1413,6 +1431,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
@@ -1485,6 +1504,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "6643-master",
                     "parent": None,
@@ -1522,6 +1542,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": "6643-master",
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "6643",
                     "parent": None,
@@ -1575,6 +1596,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "infiniband.1",
                     "parent": None,
@@ -1646,6 +1668,7 @@ class TestValidator(unittest.TestCase):
                     "11:22:33:44:55:66:77:88:99:00",
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "infiniband.2",
                     "parent": None,
@@ -1737,6 +1760,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "555",
                     "parent": None,
@@ -1836,6 +1860,7 @@ class TestValidator(unittest.TestCase):
                     "mac": None,
                     "master": None,
                     "802.1x": None,
+                    "wireless": None,
                     "mtu": None,
                     "name": "e556",
                     "parent": None,
@@ -1957,6 +1982,7 @@ class TestValidator(unittest.TestCase):
                         "ca-cert": "/etc/pki/tls/cacert.pem",
                         "system-ca-certs": False,
                     },
+                    "wireless": None,
                     "mtu": None,
                     "name": "802.1x-1",
                     "parent": None,
@@ -2028,6 +2054,7 @@ class TestValidator(unittest.TestCase):
                         "ca-cert": None,
                         "system-ca-certs": True,
                     },
+                    "wireless": None,
                     "mtu": None,
                     "name": "802.1x-2",
                     "parent": None,
@@ -2051,6 +2078,147 @@ class TestValidator(unittest.TestCase):
                         "client-cert": "/etc/pki/tls/client.pem",
                         "private-key-password-flags": ["not-required"],
                         "system-ca-certs": True,
+                    },
+                }
+            ],
+        )
+
+    def test_wireless_psk(self):
+        """
+        Test wireless connection with wpa-psk auth
+        """
+        self.maxDiff = None
+        self.do_connections_validate(
+            [
+                {
+                    "actions": ["present", "up"],
+                    "autoconnect": True,
+                    "check_iface_exists": True,
+                    "ethtool": ETHTOOL_DEFAULTS,
+                    "force_state_change": None,
+                    "ignore_errors": None,
+                    "interface_name": "wireless1",
+                    "ip": {
+                        "gateway6": None,
+                        "gateway4": None,
+                        "route_metric4": None,
+                        "auto6": True,
+                        "dhcp4": True,
+                        "address": [],
+                        "route_append_only": False,
+                        "rule_append_only": False,
+                        "route": [],
+                        "dns": [],
+                        "dns_search": [],
+                        "route_metric6": None,
+                        "dhcp4_send_hostname": None,
+                    },
+                    "mac": None,
+                    "master": None,
+                    "802.1x": None,
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-psk",
+                        "password": "p@55w0rD",
+                    },
+                    "mtu": None,
+                    "name": "wireless1",
+                    "parent": None,
+                    "persistent_state": "present",
+                    "slave_type": None,
+                    "state": "up",
+                    "type": "wireless",
+                    "wait": None,
+                    "zone": None,
+                }
+            ],
+            [
+                {
+                    "name": "wireless1",
+                    "state": "up",
+                    "type": "wireless",
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-psk",
+                        "password": "p@55w0rD",
+                    },
+                }
+            ],
+        )
+
+    def test_wireless_eap(self):
+        """
+        Test wireless connection with wpa-eap
+        """
+        self.maxDiff = None
+        self.do_connections_validate(
+            [
+                {
+                    "actions": ["present", "up"],
+                    "autoconnect": True,
+                    "check_iface_exists": True,
+                    "ethtool": ETHTOOL_DEFAULTS,
+                    "force_state_change": None,
+                    "ignore_errors": None,
+                    "interface_name": "wireless1",
+                    "ip": {
+                        "gateway6": None,
+                        "gateway4": None,
+                        "route_metric4": None,
+                        "auto6": True,
+                        "dhcp4": True,
+                        "address": [],
+                        "route_append_only": False,
+                        "rule_append_only": False,
+                        "route": [],
+                        "dns": [],
+                        "dns_search": [],
+                        "route_metric6": None,
+                        "dhcp4_send_hostname": None,
+                    },
+                    "mac": None,
+                    "master": None,
+                    "802.1x": {
+                        "identity": "myhost",
+                        "eap": "tls",
+                        "private-key": "/etc/pki/tls/client.key",
+                        "private-key-password": "p@55w0rD",
+                        "private-key-password-flags": None,
+                        "client-cert": "/etc/pki/tls/client.pem",
+                        "ca-cert": "/etc/pki/tls/cacert.pem",
+                        "system-ca-certs": False,
+                    },
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-eap",
+                    },
+                    "mtu": None,
+                    "name": "wireless1",
+                    "parent": None,
+                    "persistent_state": "present",
+                    "slave_type": None,
+                    "state": "up",
+                    "type": "wireless",
+                    "wait": None,
+                    "zone": None,
+                }
+            ],
+            [
+                {
+                    "name": "wireless1",
+                    "state": "up",
+                    "type": "wireless",
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-eap",
+                    },
+                    "802.1x": {
+                        "identity": "myhost",
+                        "eap": "tls",
+                        "private-key": "/etc/pki/tls/client.key",
+                        "private-key-password": "p@55w0rD",
+                        "client-cert": "/etc/pki/tls/client.pem",
+                        "ca-cert": "/etc/pki/tls/cacert.pem",
                     },
                 }
             ],
@@ -2132,23 +2300,41 @@ class TestValidator(unittest.TestCase):
             0,
         )
 
-    def test_802_1x_non_ethernet(self):
+    def test_802_1x_unsupported_type(self):
         """
-        should fail if a non-ethernet interface has 802.1x settings defined
+        should fail if a non ethernet/wireless connection has 802.1x settings defined
         """
+        self.do_connections_check_invalid(
+            [
+                {
+                    "name": "802.1x-bond",
+                    "state": "up",
+                    "type": "bond",
+                    "802.1x": {
+                        "identity": "myhost",
+                        "eap": "tls",
+                        "private-key": "/etc/pki/tls/client.key",
+                        "client-cert": "/etc/pki/tls/client.pem",
+                        "private-key-password-flags": ["not-required"],
+                        "system-ca-certs": True,
+                    },
+                }
+            ]
+        )
 
+    def test_wireless_initscripts(self):
+        """
+        should fail to create wireless connection with initscripts
+        """
         input_connections = [
             {
-                "name": "802.1x-bond",
+                "name": "wireless1",
                 "state": "up",
-                "type": "bond",
-                "802.1x": {
-                    "identity": "myhost",
-                    "eap": "tls",
-                    "private-key": "/etc/pki/tls/client.key",
-                    "client-cert": "/etc/pki/tls/client.pem",
-                    "private-key-password-flags": ["not-required"],
-                    "system-ca-certs": True,
+                "type": "wireless",
+                "wireless": {
+                    "ssid": "test wireless network",
+                    "key-mgmt": "wpa-psk",
+                    "password": "p@55w0rD",
                 },
             }
         ]
@@ -2158,9 +2344,113 @@ class TestValidator(unittest.TestCase):
         self.assertRaises(
             n.ValidationError,
             ARGS_CONNECTIONS.validate_connection_one,
-            VALIDATE_ONE_MODE_NM,
+            VALIDATE_ONE_MODE_INITSCRIPTS,
             connections,
             0,
+        )
+
+    def test_wireless_unsupported_type(self):
+        """
+        should fail if a non wireless connection has wireless settings defined
+        """
+        self.do_connections_check_invalid(
+            [
+                {
+                    "name": "wireless-bond",
+                    "state": "up",
+                    "type": "bond",
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-psk",
+                        "password": "p@55w0rD",
+                    },
+                }
+            ]
+        )
+
+    def test_wireless_ssid_too_long(self):
+        """
+        should fail if ssid longer than 32 bytes
+        """
+        self.do_connections_check_invalid(
+            [
+                {
+                    "name": "wireless1",
+                    "state": "up",
+                    "type": "wireless",
+                    "wireless": {
+                        "ssid": "test wireless network with ssid too long",
+                        "key-mgmt": "wpa-psk",
+                        "password": "p@55w0rD",
+                    },
+                }
+            ]
+        )
+
+    def test_wireless_no_password(self):
+        """
+        should fail if wpa-psk is selected and no password provided
+        """
+        self.do_connections_check_invalid(
+            [
+                {
+                    "name": "wireless1",
+                    "state": "up",
+                    "type": "wireless",
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-psk",
+                    },
+                }
+            ]
+        )
+
+    def test_wireless_password_too_long(self):
+        """
+        should fail if wpa-psk is selected and no password provided
+        """
+        self.do_connections_check_invalid(
+            [
+                {
+                    "name": "wireless1",
+                    "state": "up",
+                    "type": "wireless",
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-psk",
+                        "password": "This password is too long and should "
+                        "not be able to validate properly",
+                    },
+                }
+            ]
+        )
+
+    def test_wireless_no_802_1x_for_wpa_eap(self):
+        """
+        should fail if no 802.1x parameters are defined for a wireless
+        connection with key-mgmt=wpa-eap
+        """
+        self.do_connections_check_invalid(
+            [
+                {
+                    "name": "wireless1",
+                    "state": "up",
+                    "type": "wireless",
+                    "wireless": {
+                        "ssid": "test wireless network",
+                        "key-mgmt": "wpa-eap",
+                    },
+                }
+            ]
+        )
+
+    def test_wireless_no_options_defined(self):
+        """
+        should fail if a connection of type='wireless' does not
+        have any 'wireless' settings defined
+        """
+        self.do_connections_check_invalid(
+            [{"name": "wireless1", "state": "up", "type": "wireless"}]
         )
 
     def test_invalid_mac(self):

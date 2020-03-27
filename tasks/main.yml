@@ -23,6 +23,15 @@
     state: present
   when:
     - not network_packages is subset(ansible_facts.packages.keys())
+  register: package_install
+
+# Need to restart NetworkManger if NetworkManager-wifi was installed
+- name: Restart NetworkManager
+  service:
+    name: NetworkManager
+    state: restarted
+  when:
+    - wireless_connections_defined and package_install.changed
 
 - name: Enable and start NetworkManager
   service:

@@ -17,7 +17,9 @@ This role can be used to configure:
 - VLAN  interfaces
 - MacVLAN interfaces
 - Infiniband interfaces
+- Wireless (WiFi) interfaces
 - IP configuration
+- 802.1x authentication
 
 Introduction
 ------------
@@ -185,6 +187,7 @@ The `type` option can be set to the following values:
   - `vlan`
   - `macvlan`
   - `infiniband`
+  - `wireless`
 
 #### `type: ethernet`
 
@@ -230,6 +233,17 @@ role.
 Similar to `master` and `vlan`, the `parent` references the connection profile in the ansible
 role.
 
+#### `type: wireless`
+
+The `wireless` type supports WPA-PSK (password) authentication and WPA-EAP (802.1x) authentication.
+
+If WPA-EAP is used, 802.1x settings must be defined in the [802.1x](#-`802.1x`) option.
+
+The following options are supported:
+
+* `ssid`: the SSID of the wireless network (required)
+* `key-mgmt`: `wpa-psk` or `wpa-eap` (required)
+* `password`: password for the network (required if `wpa-psk` is used)
 
 ### `autoconnect`
 
@@ -612,6 +626,20 @@ network_connections:
     ip:
       address:
         - 192.168.1.1/24
+```
+
+Configuring a wireless connection:
+
+```yaml
+network_connections:
+  - name: wlan0
+    type: wireless
+    wireless:
+      ssid: "My WPA2-PSK Network"
+      key-mgmt: "wpa-psk"
+      # recommend vault encrypting the wireless password
+      # see https://docs.ansible.com/ansible/latest/user_guide/vault.html
+      password: "p@55w0rD"
 ```
 
 Setting the IP configuration:

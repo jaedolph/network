@@ -20,10 +20,23 @@ network_provider_current: "{{
 # Default to the auto-detected value
 network_provider: "{{ network_provider_current }}"
 
-# wpa_supplicant is required if any 802.1x connections are defined
-wpa_supplicant_required: "{{ network_connections |
-      json_query('[*][\"802.1x\"]') | flatten | count > 0 }}"
-_network_packages_default_802_1x: ["{% if wpa_supplicant_required
+# check if any 802.1x connections are defined
+_802_1x_connections_defined: "{{
+      network_connections|json_query('[*][\"802.1x\"]')
+      | flatten | count > 0 }}"
+
+# check if any wireless connections are defined
+wireless_connections_defined: "{{
+      ['wireless'] in network_connections|json_query('[*][type]') }}"
+
+# NetworkManager-wireless is required for wireless connections
+_network_packages_default_wireless: ["{% if wireless_connections_defined
+      %}NetworkManager-wifi{% endif %}"]
+
+# wpa_supplicant is required if any 802.1x or wireless connections are defined
+wpa_supplicant_required: "{{
+      _802_1x_connections_defined or wireless_connections_defined }}"
+_network_packages_default_wpa_supplicant: ["{% if wpa_supplicant_required
       %}wpa_supplicant{% endif %}"]
 
 # The python-gobject-base package depends on the python version and
@@ -36,7 +49,8 @@ _network_packages_default_gobject_packages: ["python{{
 network_service_name_default_nm: NetworkManager
 network_packages_default_nm: "{{ ['ethtool', 'NetworkManager']
       + _network_packages_default_gobject_packages|select()|list()
-      + _network_packages_default_802_1x|select()|list()}}"
+      + _network_packages_default_wpa_supplicant|select()|list()
+      + _network_packages_default_wireless|select()|list()}}"
 
 network_service_name_default_initscripts: network
 

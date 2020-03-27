@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: BSD-3-Clause
+---
+- hosts: all
+  vars:
+    interface: wlan0
+  tasks:
+    - name: "INIT: wireless tests"
+      debug:
+        msg: "##################################################"
+    - include_tasks: tasks/setup-mock-wifi.yml
+    - name: Copy client certs
+      copy:
+        src: "{{ item }}"
+        dest: "/etc/pki/tls/{{ item }}"
+        mode: 0644
+      with_items:
+        - client.key
+        - client.pem
+        - cacert.pem
+    - block:
+        - name: "TEST: wireless connection with WPA-PSK"
+          debug:
+            msg: "##################################################"
+        - import_role:
+            name: linux-system-roles.network
+          vars:
+            network_connections:
+              - name: "{{ interface }}"
+                state: up
+                type: wireless
+                ip:
+                  address:
+                    - 203.0.113.2/24
+                  dhcp4: "no"
+                  auto6: "no"
+                wireless:
+                  ssid: "mock_wifi"
+                  key-mgmt: "wpa-psk"
+                  password: "p@55w0rD"
+        - import_role:
+            name: linux-system-roles.network
+          vars:
+            network_connections:
+              - name: "{{ interface }}"
+                persistent_state: absent
+                state: absent
+        - name: "TEST: wireless connection with 802.1x TLS-EAP"
+          debug:
+            msg: "##################################################"
+        - import_role:
+            name: linux-system-roles.network
+          vars:
+            network_connections:
+              - name: "{{ interface }}"
+                state: up
+                type: wireless
+                ip:
+                  address:
+                    - 203.0.113.2/24
+                  dhcp4: "no"
+                  auto6: "no"
+                wireless:
+                  ssid: "mock_wifi"
+                  key-mgmt: "wpa-eap"
+                802.1x:
+                  identity: myhost
+                  eap: tls
+                  private-key: /etc/pki/tls/client.key
+                  private-key-password: test
+                  private-key-password-flags:
+                    - none
+                  client-cert: /etc/pki/tls/client.pem
+                  ca-cert: /etc/pki/tls/cacert.pem
+      always:
+        - block:
+            - import_role:
+                name: linux-system-roles.network
+              vars:
+                network_connections:
+                  - name: "{{ interface }}"
+                    persistent_state: absent
+                    state: absent
+              ignore_errors: true
+            - include_tasks: tasks/cleanup-mock-wifi.yml
+          tags:
+            - "tests::cleanup"
