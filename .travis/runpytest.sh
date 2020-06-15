@@ -8,26 +8,31 @@
 # running pytest if there are no unit tests and filters out --cov*/--no-cov*
 # arguments if there is nothing to be analyzed with coverage.
 
-# First argument to the script is a path to environment python, the rest of
-# arguments are passed to pytest.
+# The given command line arguments are passed to pytest.
+
+# Environment variables:
+#
+#   RUN_PYTEST_SETUP_MODULE_UTILS
+#     if set to an arbitrary non-empty value, the environment will be
+#     configured so that tests of the module_utils/ code will be run
+#     correctly
 
 set -e
 
 ME=$(basename $0)
 SCRIPTDIR=$(readlink -f $(dirname $0))
-TOPDIR=$(readlink -f ${SCRIPTDIR}/..)
 
 . ${SCRIPTDIR}/utils.sh
+. ${SCRIPTDIR}/config.sh
 
 if [[ ! -d ${TOPDIR}/tests/unit ]]; then
   lsr_info "${ME}: No unit tests found. Skipping."
   exit 0
 fi
 
-# Sanitize path in case if running within tox (see
-# https://github.com/tox-dev/tox/issues/1463):
-ENVPYTHON=$(readlink -f $1)
-shift
+if [[ "${RUN_PYTEST_SETUP_MODULE_UTILS}" ]]; then
+  lsr_setup_module_utils
+fi
 
 PYTEST_OPTS=()
 PYTEST_OPTS_NOCOV=()
@@ -58,4 +63,4 @@ if [[ "${USE_COV}" == "no" ]]; then
 fi
 
 set -x
-${ENVPYTHON} -m pytest "${PYTEST_OPTS[@]}"
+python -m pytest "${PYTEST_OPTS[@]}"

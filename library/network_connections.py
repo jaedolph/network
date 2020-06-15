@@ -2,25 +2,31 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: BSD-3-Clause
 
+import errno
 import functools
 import os
+import re
+import shlex
 import socket
 import time
 import traceback
 
 # pylint: disable=import-error, no-name-in-module
+from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.network_lsr import ethtool
 from ansible.module_utils.network_lsr import MyError
 
-# pylint: disable=import-error
 from ansible.module_utils.network_lsr.argument_validator import (
     ArgUtil,
     ArgValidator_ListConnections,
     ValidationError,
 )
 
-# pylint: disable=import-error
 from ansible.module_utils.network_lsr.utils import Util
 from ansible.module_utils.network_lsr import nm_provider
+
+# pylint: enable=import-error, no-name-in-module
+
 
 DOCUMENTATION = """
 ---
@@ -103,16 +109,7 @@ class SysUtil:
 
     @staticmethod
     def _link_read_permaddress(ifname):
-        try:
-            out = Util.check_output(["ethtool", "-P", ifname])
-        except MyError:
-            return None
-        import re
-
-        m = re.match("^Permanent address: ([0-9A-Fa-f:]*)\n$", out)
-        if not m:
-            return None
-        return Util.mac_norm(m.group(1))
+        return ethtool.get_perm_addr(ifname)
 
     @staticmethod
     def _link_infos_fetch():
@@ -220,8 +217,6 @@ class IfcfgUtil:
     def KeyValid(cls, name):
         r = getattr(cls, "_CHECKSTR_VALID_KEY", None)
         if r is None:
-            import re
-
             r = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
             cls._CHECKSTR_VALID_KEY = r
         return bool(r.match(name))
@@ -231,8 +226,6 @@ class IfcfgUtil:
 
         r = getattr(cls, "_re_ValueEscape", None)
         if r is None:
-            import re
-
             r = re.compile("^[a-zA-Z_0-9-.]*$")
             cls._re_ValueEscape = r
 
@@ -376,6 +369,7 @@ class IfcfgUtil:
         ethtool_features = connection["ethtool"]["features"]
         configured_features = []
         for feature, setting in ethtool_features.items():
+            feature = feature.replace("_", "-")
             value = ""
             if setting:
                 value = "on"
@@ -507,9 +501,6 @@ class IfcfgUtil:
     def ifcfg_parse_line(cls, line):
         r1 = getattr(cls, "_re_parse_line1", None)
         if r1 is None:
-            import re
-            import shlex
-
             r1 = re.compile("^[ \t]*([a-zA-Z_][a-zA-Z_0-9]*)=(.*)$")
             cls._re_parse_line1 = r1
             cls._shlex = shlex
@@ -596,8 +587,6 @@ class IfcfgUtil:
                 try:
                     os.unlink(path)
                 except OSError as e:
-                    import errno
-
                     if e.errno != errno.ENOENT:
                         raise
             else:
@@ -847,6 +836,28 @@ class NMUtil:
                 NM.SETTING_MACVLAN_PARENT,
                 ArgUtil.connection_find_master(connection["parent"], connections, idx),
             )
+        elif connection["type"] == "wireless":
+            s_con.set_property(
+                NM.SETTING_CONNECTION_TYPE, NM.SETTING_WIRELESS_SETTING_NAME
+            )
+            s_wireless = self.connection_ensure_setting(con, NM.SettingWireless)
+            s_wireless.set_property(
+                NM.SETTING_WIRELESS_SSID,
+                Util.GLib().Bytes.new(connection["wireless"]["ssid"].encode("utf-8")),
+            )
+
+            s_wireless_sec = self.connection_ensure_setting(
+                con, NM.SettingWirelessSecurity
+            )
+            s_wireless_sec.set_property(
+                NM.SETTING_WIRELESS_SECURITY_KEY_MGMT,
+                connection["wireless"]["key_mgmt"],
+            )
+
+            if connection["wireless"]["key_mgmt"] == "wpa-psk":
+                s_wireless_sec.set_property(
+                    NM.SETTING_WIRELESS_SECURITY_PSK, connection["wireless"]["password"]
+                )
         else:
             raise MyError("unsupported type %s" % (connection["type"]))
 
@@ -974,50 +985,63 @@ class NMUtil:
                 else:
                     s_ip6.add_route(rr)
 
-        if connection["802.1x"]:
+        if connection["ieee802_1x"]:
             s_8021x = self.connection_ensure_setting(con, NM.Setting8021x)
 
-            s_8021x.set_property(NM.SETTING_802_1X_EAP, [connection["802.1x"]["eap"]])
             s_8021x.set_property(
-                NM.SETTING_802_1X_IDENTITY, connection["802.1x"]["identity"]
+                NM.SETTING_802_1X_EAP, [connection["ieee802_1x"]["eap"]]
+            )
+            s_8021x.set_property(
+                NM.SETTING_802_1X_IDENTITY, connection["ieee802_1x"]["identity"]
             )
 
             s_8021x.set_property(
                 NM.SETTING_802_1X_PRIVATE_KEY,
-                Util.path_to_glib_bytes(connection["802.1x"]["private-key"]),
+                Util.path_to_glib_bytes(connection["ieee802_1x"]["private_key"]),
             )
 
-            if connection["802.1x"]["private-key-password"]:
+            if connection["ieee802_1x"]["private_key_password"]:
                 s_8021x.set_property(
                     NM.SETTING_802_1X_PRIVATE_KEY_PASSWORD,
-                    connection["802.1x"]["private-key-password"],
+                    connection["ieee802_1x"]["private_key_password"],
                 )
 
-            if connection["802.1x"]["private-key-password-flags"]:
+            if connection["ieee802_1x"]["private_key_password_flags"]:
                 s_8021x.set_secret_flags(
                     NM.SETTING_802_1X_PRIVATE_KEY_PASSWORD,
                     Util.NM().SettingSecretFlags(
                         Util.convert_passwd_flags_nm(
-                            connection["802.1x"]["private-key-password-flags"]
+                            connection["ieee802_1x"]["private_key_password_flags"]
                         ),
                     ),
                 )
 
             s_8021x.set_property(
                 NM.SETTING_802_1X_CLIENT_CERT,
-                Util.path_to_glib_bytes(connection["802.1x"]["client-cert"]),
+                Util.path_to_glib_bytes(connection["ieee802_1x"]["client_cert"]),
             )
 
-            if connection["802.1x"]["ca-cert"]:
+            if connection["ieee802_1x"]["ca_cert"]:
                 s_8021x.set_property(
                     NM.SETTING_802_1X_CA_CERT,
-                    Util.path_to_glib_bytes(connection["802.1x"]["ca-cert"]),
+                    Util.path_to_glib_bytes(connection["ieee802_1x"]["ca_cert"]),
+                )
+
+            if connection["ieee802_1x"]["ca_path"]:
+                s_8021x.set_property(
+                    NM.SETTING_802_1X_CA_PATH, connection["ieee802_1x"]["ca_path"],
                 )
 
             s_8021x.set_property(
                 NM.SETTING_802_1X_SYSTEM_CA_CERTS,
-                connection["802.1x"]["system-ca-certs"],
+                connection["ieee802_1x"]["system_ca_certs"],
             )
+
+            if connection["ieee802_1x"]["domain_suffix_match"]:
+                s_8021x.set_property(
+                    NM.SETTING_802_1X_DOMAIN_SUFFIX_MATCH,
+                    connection["ieee802_1x"]["domain_suffix_match"],
+                )
 
         try:
             con.normalize()
@@ -1414,6 +1438,13 @@ class NMUtil:
             finally:
                 ac.handler_disconnect(ac_id)
 
+    def reapply(self, device, connection=None):
+        version_id = 0
+        flags = 0
+        return Util.call_async_method(
+            device, "reapply", [connection, version_id, flags]
+        )
+
 
 ###############################################################################
 
@@ -1468,15 +1499,14 @@ class RunEnvironmentAnsible(RunEnvironment):
         "force_state_change": {"required": False, "default": False, "type": "bool"},
         "provider": {"required": True, "default": None, "type": "str"},
         "connections": {"required": False, "default": None, "type": "list"},
+        "__debug_flags": {"required": False, "default": "", "type": "str"},
     }
 
     def __init__(self):
         RunEnvironment.__init__(self)
         self._run_results = []
         self._log_idx = 0
-
-        from ansible.module_utils.basic import AnsibleModule
-
+        self.on_failure = None
         module = AnsibleModule(argument_spec=self.ARGS, supports_check_mode=True)
         self.module = module
 
@@ -1543,24 +1573,33 @@ class RunEnvironmentAnsible(RunEnvironment):
                 c["persistent_state"],
             )
             prefix = prefix + (", '%s'" % (c["name"]))
-        for r in rr["log"]:
-            yield (r[2], "[%03d] %s %s: %s" % (r[2], LogLevel.fmt(r[0]), prefix, r[1]))
+        for severity, msg, idx in rr["log"]:
+            yield (
+                idx,
+                "[%03d] %s %s: %s" % (idx, LogLevel.fmt(severity), prefix, msg),
+                severity,
+            )
 
-    def _complete_kwargs(self, connections, kwargs, traceback_msg=None):
-        if "warnings" in kwargs:
-            logs = list(kwargs["warnings"])
-        else:
-            logs = []
-
+    def _complete_kwargs(self, connections, kwargs, traceback_msg=None, fail=False):
+        warning_logs = kwargs.get("warnings", [])
+        debug_logs = []
         loglines = []
         for res in self._run_results:
             for idx, rr in enumerate(res):
                 loglines.extend(self._complete_kwargs_loglines(rr, connections, idx))
-        loglines.sort(key=lambda x: x[0])
-        logs.extend([x[1] for x in loglines])
+        loglines.sort(key=lambda log_line: log_line[0])
+        for idx, log_line, severity in loglines:
+            debug_logs.append(log_line)
+            if fail:
+                warning_logs.append(log_line)
+            elif severity >= LogLevel.WARN:
+                warning_logs.append(log_line)
         if traceback_msg is not None:
-            logs.append(traceback_msg)
-        kwargs["warnings"] = logs
+            warning_logs.append(traceback_msg)
+        kwargs["warnings"] = warning_logs
+        stderr = "\n".join(debug_logs) + "\n"
+        kwargs["stderr"] = stderr
+        kwargs["invocation"] = {"params": self.module.params}
         return kwargs
 
     def exit_json(self, connections, changed=False, **kwargs):
@@ -1570,13 +1609,16 @@ class RunEnvironmentAnsible(RunEnvironment):
     def fail_json(
         self, connections, msg, changed=False, warn_traceback=False, **kwargs
     ):
+        if self.on_failure:
+            self.on_failure()
+
         traceback_msg = None
         if warn_traceback:
             traceback_msg = "exception: %s" % (traceback.format_exc())
         kwargs["msg"] = msg
         kwargs["changed"] = changed
         self.module.fail_json(
-            **self._complete_kwargs(connections, kwargs, traceback_msg)
+            **self._complete_kwargs(connections, kwargs, traceback_msg, fail=True)
         )
 
 
@@ -1592,6 +1634,7 @@ class Cmd(object):
         is_check_mode=False,
         ignore_errors=False,
         force_state_change=False,
+        debug_flags="",
     ):
         self.run_env = run_env
         self.validate_one_type = None
@@ -1605,6 +1648,7 @@ class Cmd(object):
         self._connections_data = None
         self._check_mode = CheckMode.PREPARE
         self._is_changed_modified_system = False
+        self._debug_flags = debug_flags
 
     def run_command(self, argv, encoding=None):
         return self.run_env.run_command(argv, encoding=encoding)
@@ -1876,6 +1920,10 @@ class Cmd(object):
             idx, "failure: %s (%s) [[%s]]" % (error, action, traceback.format_exc())
         )
 
+    def on_failure(self):
+        """ Hook to do any cleanup on failure before exiting """
+        pass
+
     def run_action_absent(self, idx):
         raise NotImplementedError()
 
@@ -1937,23 +1985,29 @@ class Cmd_nm(Cmd):
 
     def start_transaction(self):
         Cmd.start_transaction(self)
-        self._checkpoint = self.nmutil.create_checkpoint(
-            len(self.connections) * DEFAULT_ACTIVATION_TIMEOUT
-        )
+        if "disable-checkpoints" in self._debug_flags:
+            pass
+        else:
+            self._checkpoint = self.nmutil.create_checkpoint(
+                len(self.connections) * DEFAULT_ACTIVATION_TIMEOUT
+            )
 
     def rollback_transaction(self, idx, action, error):
         Cmd.rollback_transaction(self, idx, action, error)
-        if self._checkpoint:
-            try:
-                self.nmutil.rollback_checkpoint(self._checkpoint)
-            finally:
-                self._checkpoint = None
+        self.on_failure()
 
     def finish_transaction(self):
         Cmd.finish_transaction(self)
         if self._checkpoint:
             try:
                 self.nmutil.destroy_checkpoint(self._checkpoint)
+            finally:
+                self._checkpoint = None
+
+    def on_failure(self):
+        if self._checkpoint:
+            try:
+                self.nmutil.rollback_checkpoint(self._checkpoint)
             finally:
                 self._checkpoint = None
 
@@ -2059,6 +2113,30 @@ class Cmd_nm(Cmd):
                 % (con_cur.get_id(), con_cur.get_uuid()),
             )
 
+        if (
+            self.check_mode == CheckMode.REAL_RUN
+            and connection["ieee802_1x"] is not None
+            and connection["ieee802_1x"].get("ca_path")
+        ):
+            # It seems that NM on Fedora 31
+            # (NetworkManager-1.20.4-1.fc31.x86_64) does need some time so that
+            # the D-Bus information is actually up-to-date.
+            time.sleep(0.1)
+            Util.GMainLoop_iterate_all()
+            updated_connection = Util.first(
+                self.nmutil.connection_list(
+                    name=connection["name"], uuid=connection["nm.uuid"]
+                )
+            )
+            ca_path = updated_connection.get_setting_802_1x().props.ca_path
+            if not ca_path:
+                self.log_fatal(
+                    idx,
+                    "ieee802_1x.ca_path specified but not supported by "
+                    "NetworkManager. Please update NetworkManager or use "
+                    "ieee802_1x.ca_cert.",
+                )
+
         seen = set()
         if con_cur is not None:
             seen.add(con_cur)
@@ -2133,6 +2211,9 @@ class Cmd_nm(Cmd):
         )
         self.connections_data_set_changed(idx)
         if self.check_mode == CheckMode.REAL_RUN:
+            if self._try_reapply(idx, con):
+                return
+
             try:
                 ac = self.nmutil.connection_activate(con)
             except MyError as e:
@@ -2146,6 +2227,33 @@ class Cmd_nm(Cmd):
                 self.nmutil.connection_activate_wait(ac, wait_time)
             except MyError as e:
                 self.log_error(idx, "up connection failed while waiting: %s" % (e))
+
+    def _try_reapply(self, idx, con):
+        """ Try to reapply a connection
+
+        If there is exactly one active connection with the same UUID activated
+        on exactly one device, ask the device to reapply the connection.
+
+        :returns: `True`, when the connection was reapplied, `False` otherwise
+        :rtype: bool
+        """
+        NM = Util.NM()
+
+        acons = list(self.nmutil.active_connection_list(connections=[con]))
+        if len(acons) != 1:
+            return False
+
+        active_connection = acons[0]
+        if active_connection.get_state() == NM.ActiveConnectionState.ACTIVATED:
+            devices = active_connection.get_devices()
+            if len(devices) == 1:
+                try:
+                    self.nmutil.reapply(devices[0])
+                    self.log_info(idx, "connection reapplied")
+                    return True
+                except MyError as error:
+                    self.log_info(idx, "connection reapply failed: %s" % (error))
+        return False
 
     def run_action_down(self, idx):
         connection = self.connections[idx]
@@ -2406,8 +2514,10 @@ def main():
             is_check_mode=run_env_ansible.module.check_mode,
             ignore_errors=params["ignore_errors"],
             force_state_change=params["force_state_change"],
+            debug_flags=params["__debug_flags"],
         )
         connections = cmd.connections
+        run_env_ansible.on_failure = cmd.on_failure
         cmd.run()
     except Exception as e:
         run_env_ansible.fail_json(

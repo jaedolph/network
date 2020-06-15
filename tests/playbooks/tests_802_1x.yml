@@ -7,17 +7,7 @@
     - name: "INIT: 802.1x tests"
       debug:
         msg: "##################################################"
-    - include_tasks: tasks/setup-802_1x_server.yml
-    - name: Copy client certs
-      copy:
-        src: "{{ item }}"
-        dest: "/etc/pki/tls/{{ item }}"
-        mode: 0644
-      with_items:
-        - client.key
-        - client.key.nocrypt
-        - client.pem
-        - cacert.pem
+    - include_tasks: tasks/setup_802.1x.yml
     - block:
         - name: "TEST: 802.1x profile with private key password and ca cert"
           debug:
@@ -35,17 +25,17 @@
                     - 203.0.113.2/24
                   dhcp4: "no"
                   auto6: "no"
-                802.1x:
+                ieee802_1x:
                   identity: myhost
                   eap: tls
-                  private-key: /etc/pki/tls/client.key
-                  private-key-password: test
-                  private-key-password-flags:
+                  private_key: /etc/pki/tls/client.key
+                  private_key_password: test
+                  private_key_password_flags:
                     - none
-                  client-cert: /etc/pki/tls/client.pem
-                  ca-cert: /etc/pki/tls/cacert.pem
+                  client_cert: /etc/pki/tls/client.pem
+                  ca_cert: /etc/pki/tls/cacert.pem
         - name: "TEST: I can ping the EAP server"
-          shell: ping -c1 203.0.113.1
+          command: ping -c1 203.0.113.1
         - import_role:
             name: linux-system-roles.network
           vars:
@@ -54,8 +44,8 @@
                 persistent_state: absent
                 state: absent
         - name: >-
-            TEST: 802.1x profile with unencrypted private key and
-            system ca certs
+            TEST: 802.1x profile with unencrypted private key,
+            domain suffix match, and system ca certs
           debug:
             msg: "##################################################"
         - name: Copy cacert to system truststore
@@ -64,7 +54,7 @@
             dest: /etc/pki/ca-trust/source/anchors/cacert.pem
             mode: 0644
         - name: Update ca trust
-          shell: update-ca-trust
+          command: update-ca-trust
         - import_role:
             name: linux-system-roles.network
           vars:
@@ -78,16 +68,26 @@
                     - 203.0.113.2/24
                   dhcp4: "no"
                   auto6: "no"
-                802.1x:
+                ieee802_1x:
                   identity: myhost
                   eap: tls
-                  private-key: /etc/pki/tls/client.key.nocrypt
-                  client-cert: /etc/pki/tls/client.pem
-                  private-key-password-flags:
+                  private_key: /etc/pki/tls/client.key.nocrypt
+                  client_cert: /etc/pki/tls/client.pem
+                  private_key_password_flags:
                     - not-required
-                  system-ca-certs: True
+                  system_ca_certs: True
+                  domain_suffix_match: example.com
         - name: "TEST: I can ping the EAP server"
-          shell: ping -c1 203.0.113.1
+          command: ping -c1 203.0.113.1
+        - import_role:
+            name: linux-system-roles.network
+          vars:
+            network_connections:
+              - name: "{{ interface }}"
+                persistent_state: absent
+                state: absent
+
+        - include_tasks: tasks/test_802.1x_capath.yml
       always:
         - block:
             - import_role:
@@ -96,11 +96,29 @@
                 network_connections:
                   - name: "{{ interface }}"
                     persistent_state: absent
-                    state: absent
+                    state: down
                   - name: br1
                     persistent_state: absent
-                    state: absent
+                    state: down
               ignore_errors: true
-            - include_tasks: tasks/cleanup-802_1x_server.yml
+            - include_tasks: tasks/cleanup_802_1x_server.yml
+            - name: Remove test certificates
+              file:
+                state: absent
+                path: "/etc/pki/tls/{{ item }}"
+              with_items:
+                - client.key
+                - client.key.nocrypt
+                - client.pem
+                - cacert.pem
+            - name: Remove test CA
+              file:
+                state: absent
+                path: "{{ item }}"
+              with_items:
+                - /etc/pki/tls/my_ca_certs
+                - /etc/pki/ca-trust/source/anchors/cacert.pem
+            - name: Update ca trust
+              command: update-ca-trust
           tags:
             - "tests::cleanup"

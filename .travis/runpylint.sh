@@ -10,8 +10,14 @@
 #       which set them by including config.sh). Now, they take effect also when
 #       running tox locally.
 
-# First argument to the script is a path to environment python, the rest of
-# arguments are passed to custom_pylint.py.
+# The given command line arguments are passed to custom_pylint.py.
+
+# Environment variables:
+#
+#   RUN_PYLINT_SETUP_MODULE_UTILS
+#     if set to an arbitrary non-empty value, the environment will be
+#     configured so that linting of the module_utils/ code will be run
+#     correctly
 
 set -e
 
@@ -20,10 +26,13 @@ SCRIPTDIR=$(readlink -f $(dirname $0))
 
 . ${SCRIPTDIR}/config.sh
 
-# Sanitize path in case if running within tox (see
-# https://github.com/tox-dev/tox/issues/1463):
-ENVPYTHON=$(readlink -f $1)
-shift
+if [[ "${RUN_PYLINT_SETUP_MODULE_UTILS}" ]]; then
+  . ${SCRIPTDIR}/utils.sh
+  lsr_setup_module_utils
+fi
 
+export RUN_PYLINT_DISABLED
+export RUN_PYLINT_EXCLUDE
+export RUN_PYLINT_INCLUDE
 set -x
-${ENVPYTHON} ${SCRIPTDIR}/custom_pylint.py "$@"
+python ${SCRIPTDIR}/custom_pylint.py "$@"
