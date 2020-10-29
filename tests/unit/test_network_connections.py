@@ -164,6 +164,7 @@ class TestValidator(unittest.TestCase):
                 "auto6": True,
                 "dhcp4": True,
                 "address": [],
+                "defroute": None,
                 "route_append_only": False,
                 "rule_append_only": False,
                 "route": [],
@@ -455,6 +456,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -507,6 +509,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -553,6 +556,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -646,6 +650,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "192.168.174.5",
                             }
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -709,6 +714,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "192.168.174.5",
                             }
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -767,6 +773,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "192.168.177.5",
                             },
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -823,6 +830,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "a:b:c::6",
                             },
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [
@@ -880,6 +888,172 @@ class TestValidator(unittest.TestCase):
             ],
         )
 
+    def test_defroute_true(self):
+        self.maxDiff = None
+        self.do_connections_validate(
+            [
+                {
+                    "actions": ["present", "up"],
+                    "autoconnect": True,
+                    "check_iface_exists": True,
+                    "ethernet": ETHERNET_DEFAULTS,
+                    "ethtool": ETHTOOL_DEFAULTS,
+                    "force_state_change": None,
+                    "ignore_errors": None,
+                    "interface_name": "prod1",
+                    "ip": {
+                        "dhcp4": True,
+                        "route_metric6": None,
+                        "route_metric4": None,
+                        "dns_search": [],
+                        "dhcp4_send_hostname": None,
+                        "gateway6": None,
+                        "gateway4": None,
+                        "auto6": True,
+                        "dns": [],
+                        "address": [],
+                        "defroute": True,
+                        "route_append_only": False,
+                        "rule_append_only": False,
+                        "route": [],
+                    },
+                    "mac": None,
+                    "master": None,
+                    "ieee802_1x": None,
+                    "wireless": None,
+                    "mtu": None,
+                    "name": "prod1",
+                    "parent": None,
+                    "persistent_state": "present",
+                    "slave_type": None,
+                    "state": "up",
+                    "type": "ethernet",
+                    "wait": None,
+                    "zone": None,
+                }
+            ],
+            [
+                {
+                    "name": "prod1",
+                    "state": "up",
+                    "type": "ethernet",
+                    "ip": {"defroute": True},
+                }
+            ],
+            initscripts_dict_expected=[
+                {
+                    "ifcfg": {
+                        "BOOTPROTO": "dhcp",
+                        "DEFROUTE": "yes",
+                        "IPV6_DEFROUTE": "yes",
+                        "IPV6INIT": "yes",
+                        "IPV6_AUTOCONF": "yes",
+                        "NM_CONTROLLED": "no",
+                        "ONBOOT": "yes",
+                        "DEVICE": "prod1",
+                        "TYPE": "Ethernet",
+                    },
+                    "keys": None,
+                    "route": None,
+                    "route6": None,
+                    "rule": None,
+                    "rule6": None,
+                }
+            ],
+        )
+
+    def test_defroute_false(self):
+        self.maxDiff = None
+        self.do_connections_validate(
+            [
+                {
+                    "actions": ["present", "up"],
+                    "autoconnect": True,
+                    "check_iface_exists": True,
+                    "ethernet": ETHERNET_DEFAULTS,
+                    "ethtool": ETHTOOL_DEFAULTS,
+                    "force_state_change": None,
+                    "ignore_errors": None,
+                    "interface_name": "prod1",
+                    "ip": {
+                        "dhcp4": True,
+                        "route_metric6": None,
+                        "route_metric4": None,
+                        "dns_search": [],
+                        "dhcp4_send_hostname": None,
+                        "gateway6": None,
+                        "gateway4": None,
+                        "auto6": True,
+                        "dns": [],
+                        "address": [],
+                        "defroute": False,
+                        "route_append_only": False,
+                        "rule_append_only": False,
+                        "route": [],
+                    },
+                    "mac": None,
+                    "master": None,
+                    "ieee802_1x": None,
+                    "wireless": None,
+                    "mtu": None,
+                    "name": "prod1",
+                    "parent": None,
+                    "persistent_state": "present",
+                    "slave_type": None,
+                    "state": "up",
+                    "type": "ethernet",
+                    "wait": None,
+                    "zone": None,
+                }
+            ],
+            [
+                {
+                    "name": "prod1",
+                    "state": "up",
+                    "type": "ethernet",
+                    "ip": {"defroute": False},
+                }
+            ],
+            initscripts_dict_expected=[
+                {
+                    "ifcfg": {
+                        "BOOTPROTO": "dhcp",
+                        "DEFROUTE": "no",
+                        "IPV6_DEFROUTE": "no",
+                        "IPV6INIT": "yes",
+                        "IPV6_AUTOCONF": "yes",
+                        "NM_CONTROLLED": "no",
+                        "ONBOOT": "yes",
+                        "DEVICE": "prod1",
+                        "TYPE": "Ethernet",
+                    },
+                    "keys": None,
+                    "route": None,
+                    "route6": None,
+                    "rule": None,
+                    "rule6": None,
+                }
+            ],
+        )
+
+    def test_defroute_no_gateway(self):
+        self.maxDiff = None
+        self.do_connections_check_invalid(
+            [
+                {
+                    "name": "eth0",
+                    "state": "up",
+                    "type": "ethernet",
+                    "ip": {
+                        "dhcp4": "no",
+                        "auto6": "no",
+                        "defroute": "true",
+                        "address": "192.168.176.5/24",
+                    },
+                }
+            ]
+        )
+
     def test_vlan(self):
         self.maxDiff = None
         self.do_connections_validate(
@@ -908,6 +1082,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "192.168.177.5",
                             },
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -964,6 +1139,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "a:b:c::6",
                             },
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [
@@ -1044,6 +1220,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "192.168.122.3",
                             }
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -1094,6 +1271,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "192.168.244.1",
                             }
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [
@@ -1146,6 +1324,7 @@ class TestValidator(unittest.TestCase):
                                 "address": "192.168.245.7",
                             }
                         ],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [
@@ -1233,6 +1412,7 @@ class TestValidator(unittest.TestCase):
                     "interface_name": "bridge2",
                     "ip": {
                         "address": [],
+                        "defroute": None,
                         "auto6": False,
                         "dhcp4": False,
                         "dhcp4_send_hostname": None,
@@ -1271,6 +1451,7 @@ class TestValidator(unittest.TestCase):
                     "interface_name": "eth1",
                     "ip": {
                         "address": [],
+                        "defroute": None,
                         "auto6": True,
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
@@ -1342,6 +1523,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dns": [],
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -1389,6 +1571,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dns": [],
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -1437,6 +1620,7 @@ class TestValidator(unittest.TestCase):
                     "interface_name": None,
                     "ip": {
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -1487,6 +1671,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -1555,6 +1740,7 @@ class TestValidator(unittest.TestCase):
                     "interface_name": "6643-master",
                     "ip": {
                         "address": [],
+                        "defroute": None,
                         "auto6": True,
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
@@ -1593,6 +1779,7 @@ class TestValidator(unittest.TestCase):
                     "interface_name": "6643",
                     "ip": {
                         "address": [],
+                        "defroute": None,
                         "auto6": True,
                         "dhcp4_send_hostname": None,
                         "dhcp4": True,
@@ -1647,6 +1834,7 @@ class TestValidator(unittest.TestCase):
                     "interface_name": None,
                     "ip": {
                         "address": [],
+                        "defroute": None,
                         "auto6": True,
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
@@ -1718,6 +1906,7 @@ class TestValidator(unittest.TestCase):
                     "interface_name": None,
                     "ip": {
                         "address": [],
+                        "defroute": None,
                         "auto6": True,
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
@@ -1801,6 +1990,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [
@@ -1894,6 +2084,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": True,
                         "rule_append_only": False,
                         "route": [
@@ -2029,6 +2220,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -2104,6 +2296,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -2179,6 +2372,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -2252,6 +2446,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],
@@ -2315,6 +2510,7 @@ class TestValidator(unittest.TestCase):
                         "auto6": True,
                         "dhcp4": True,
                         "address": [],
+                        "defroute": None,
                         "route_append_only": False,
                         "rule_append_only": False,
                         "route": [],

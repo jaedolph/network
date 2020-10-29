@@ -485,6 +485,15 @@ class IfcfgUtil:
             if ip["gateway6"] is not None:
                 ifcfg["IPV6_DEFAULTGW"] = ip["gateway6"]
 
+            if ip["defroute"] is not None:
+                # note that IPV6_DEFROUTE has no effect if initscripts are used
+                if ip["defroute"]:
+                    ifcfg["DEFROUTE"] = "yes"
+                    ifcfg["IPV6_DEFROUTE"] = "yes"
+                else:
+                    ifcfg["DEFROUTE"] = "no"
+                    ifcfg["IPV6_DEFROUTE"] = "no"
+
             route4 = []
             route6 = []
             for r in ip["route"]:
@@ -1010,6 +1019,14 @@ class NMUtil:
                 s_ip6.set_property(
                     NM.SETTING_IP_CONFIG_ROUTE_METRIC, ip["route_metric6"]
                 )
+
+            if ip["defroute"]:
+                s_ip6.set_property(NM.SETTING_IP_CONFIG_NEVER_DEFAULT, False)
+                s_ip4.set_property(NM.SETTING_IP_CONFIG_NEVER_DEFAULT, False)
+            if not ip["defroute"]:
+                s_ip6.set_property(NM.SETTING_IP_CONFIG_NEVER_DEFAULT, True)
+                s_ip4.set_property(NM.SETTING_IP_CONFIG_NEVER_DEFAULT, True)
+
             for d in ip["dns"]:
                 if d["family"] == socket.AF_INET6:
                     s_ip6.add_dns(d["address"])

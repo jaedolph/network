@@ -333,6 +333,11 @@ The IP configuration supports the following options:
     given in the `dns` option and a list of domains to search given in the
     `dns_search` option.
 
+* `defroute`
+
+    If enabled, a default route will be configured using the default gateway. If disabled, the default route will be removed.
+
+    If this variable is not specified, the role will use the default behavior of the `network_provider` selected.
 
 * `route_metric4` and `route_metric6`
 
