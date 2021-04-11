@@ -59,10 +59,14 @@ EXTRA_RUN_CONDITION = "extra_run_condition"
 NM_ONLY_TESTS = {
     "playbooks/tests_802_1x_updated.yml": {},
     "playbooks/tests_802_1x.yml": {},
+    "playbooks/tests_eth_dns_support.yml": {},
     "playbooks/tests_dummy.yml": {},
     "playbooks/tests_ethtool_features.yml": {
         MINIMUM_VERSION: "'1.20.0'",
         "comment": "# NetworkManager 1.20.0 introduced ethtool settings support",
+    },
+    "playbooks/tests_ipv6_disabled.yml": {
+        EXTRA_RUN_CONDITION: "ansible_distribution_major_version == '8'",
     },
     "playbooks/tests_provider.yml": {
         MINIMUM_VERSION: "'1.20.0'",
@@ -72,18 +76,18 @@ NM_ONLY_TESTS = {
         MINIMUM_VERSION: "'1.25.1'",
         "comment": "# NetworkManager 1.25.1 introduced ethtool coalesce support",
     },
-    "playbooks/tests_802_1x_updated.yml": {},
-    "playbooks/tests_802_1x.yml": {},
     "playbooks/tests_reapply.yml": {},
     # team interface is not supported on Fedora
     "playbooks/tests_team.yml": {
         EXTRA_RUN_CONDITION: "ansible_distribution != 'Fedora'",
     },
+    "playbooks/tests_team_plugin_installation.yml": {},
     # mac80211_hwsim (used for tests_wireless) only seems to be available
     # and working on RHEL/CentOS 7
     "playbooks/tests_wireless.yml": {
         EXTRA_RUN_CONDITION: "ansible_distribution_major_version == '7'",
     },
+    "playbooks/tests_wireless_plugin_installation.yml": {},
 }
 
 IGNORE = [
@@ -116,9 +120,7 @@ def create_nm_playbook(test_playbook):
         EXTRA_RUN_CONDITION, ""
     )
     if extra_run_condition:
-        extra_run_condition = "{}{}\n".format(
-            EXTRA_RUN_CONDITION_PREFIX, extra_run_condition
-        )
+        extra_run_condition = f"{EXTRA_RUN_CONDITION_PREFIX}{extra_run_condition}\n"
 
     nm_version_check = ""
     if minimum_nm_version:
@@ -211,7 +213,7 @@ def main():
 
     if missing:
         print("ERROR: No NM or initscripts tests found for:\n" + ", \n".join(missing))
-        print("Try to generate them with '{} generate'".format(sys.argv[0]))
+        print(f"Try to generate them with '{sys.argv[0]} generate'")
         returncode = 1
 
     return returncode

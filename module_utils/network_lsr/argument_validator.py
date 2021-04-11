@@ -1,12 +1,16 @@
-#!/usr/bin/python3 -tt
 # vim: fileencoding=utf8
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import posixpath
 import socket
+import re
 
 # pylint: disable=import-error, no-name-in-module
-from ansible.module_utils.network_lsr import MyError  # noqa:E501
+from ansible.module_utils.network_lsr.myerror import MyError  # noqa:E501
 from ansible.module_utils.network_lsr.utils import Util  # noqa:E501
 
 UINT32_MAX = 0xFFFFFFFF
@@ -31,26 +35,27 @@ class ArgUtil:
         return c
 
     @staticmethod
-    def connection_find_master(name, connections, n_connections=None):
+    def connection_find_controller(name, connections, n_connections=None):
         c = ArgUtil.connection_find_by_name(name, connections, n_connections)
         if not c:
-            raise MyError("invalid master/parent '%s'" % (name))
+            raise MyError("invalid controller/parent '%s'" % (name))
         if c["interface_name"] is None:
             raise MyError(
-                "invalid master/parent '%s' which needs an 'interface_name'" % (name)
+                "invalid controller/parent '%s' which needs an 'interface_name'"
+                % (name)
             )
         if not Util.ifname_valid(c["interface_name"]):
             raise MyError(
-                "invalid master/parent '%s' with invalid 'interface_name' ('%s')"
+                "invalid controller/parent '%s' with invalid 'interface_name' ('%s')"
                 % (name, c["interface_name"])
             )
         return c["interface_name"]
 
     @staticmethod
-    def connection_find_master_uuid(name, connections, n_connections=None):
+    def connection_find_controller_uuid(name, connections, n_connections=None):
         c = ArgUtil.connection_find_by_name(name, connections, n_connections)
         if not c:
-            raise MyError("invalid master/parent '%s'" % (name))
+            raise MyError("invalid controller/parent '%s'" % (name))
         return c["nm.uuid"]
 
     @staticmethod
@@ -70,7 +75,8 @@ class ArgUtil:
 
 class ValidationError(MyError):
     def __init__(self, name, message):
-        Exception.__init__(self, name + ": " + message)
+        # pylint: disable=non-parent-init-called
+        super(ValidationError, self).__init__(name + ": " + message)
         self.error_message = message
         self.name = name
 
@@ -171,10 +177,12 @@ class ArgValidatorStr(ArgValidator):
         allow_empty=False,
         min_length=None,
         max_length=None,
+        regex=None,
     ):
         ArgValidator.__init__(self, name, required, default_value)
         self.enum_values = enum_values
         self.allow_empty = allow_empty
+        self.regex = regex
 
         if max_length is not None:
             if not isinstance(max_length, int):
@@ -199,6 +207,12 @@ class ArgValidatorStr(ArgValidator):
                 name,
                 "is '%s' but must be one of '%s'"
                 % (value, "' '".join(sorted(self.enum_values))),
+            )
+        if self.regex is not None and not any(re.match(x, value) for x in self.regex):
+            raise ValidationError(
+                name,
+                "is '%s' which does not match the regex '%s'"
+                % (value, "' '".join(sorted(self.regex))),
             )
         if not self.allow_empty and not value:
             raise ValidationError(name, "cannot be empty")
@@ -517,6 +531,22 @@ class ArgValidatorIPRoute(ArgValidatorDict):
 
 
 class ArgValidator_DictIP(ArgValidatorDict):
+    REGEX_DNS_OPTIONS = [
+        r"^attempts:([1-9]\d*|0)$",
+        r"^debug$",
+        r"^edns0$",
+        r"^ndots:([1-9]\d*|0)$",
+        r"^no-check-names$",
+        r"^no-reload$",
+        r"^no-tld-query$",
+        r"^rotate$",
+        r"^single-request$",
+        r"^single-request-reopen$",
+        r"^timeout:([1-9]\d*|0)$",
+        r"^trust-ad$",
+        r"^use-vc$",
+    ]
+
     def __init__(self):
         ArgValidatorDict.__init__(
             self,
@@ -529,6 +559,7 @@ class ArgValidator_DictIP(ArgValidatorDict):
                     "route_metric4", val_min=-1, val_max=0xFFFFFFFF, default_value=None
                 ),
                 ArgValidatorBool("auto6", default_value=None),
+                ArgValidatorBool("ipv6_disabled", default_value=None),
                 ArgValidatorIP("gateway6", family=socket.AF_INET6),
                 ArgValidatorNum(
                     "route_metric6", val_min=-1, val_max=0xFFFFFFFF, default_value=None
@@ -554,6 +585,13 @@ class ArgValidator_DictIP(ArgValidatorDict):
                     nested=ArgValidatorStr("dns_search[?]"),
                     default_value=list,
                 ),
+                ArgValidatorList(
+                    "dns_options",
+                    nested=ArgValidatorStr(
+                        "dns_options[?]", regex=ArgValidator_DictIP.REGEX_DNS_OPTIONS
+                    ),
+                    default_value=list,
+                ),
             ],
             default_value=lambda: {
                 "dhcp4": True,
@@ -561,6 +599,7 @@ class ArgValidator_DictIP(ArgValidatorDict):
                 "gateway4": None,
                 "route_metric4": None,
                 "auto6": True,
+                "ipv6_disabled": False,
                 "gateway6": None,
                 "route_metric6": None,
                 "address": [],
@@ -570,18 +609,50 @@ class ArgValidator_DictIP(ArgValidatorDict):
                 "rule_append_only": False,
                 "dns": [],
                 "dns_search": [],
+                "dns_options": [],
             },
         )
 
     def _validate_post(self, value, name, result):
+
+        has_ipv6_addresses = any(
+            [a for a in result["address"] if a["family"] == socket.AF_INET6]
+        )
+
+        if result["ipv6_disabled"] is True:
+            if result["auto6"] is True:
+                raise ValidationError(
+                    name, "'auto6' and 'ipv6_disabled' are mutually exclusive"
+                )
+            if has_ipv6_addresses:
+                raise ValidationError(
+                    name,
+                    "'ipv6_disabled' and static IPv6 addresses are mutually exclusive",
+                )
+            if result["gateway6"] is not None:
+                raise ValidationError(
+                    name, "'ipv6_disabled' and 'gateway6' are mutually exclusive"
+                )
+            if result["route_metric6"] is not None:
+                raise ValidationError(
+                    name, "'ipv6_disabled' and 'route_metric6' are mutually exclusive"
+                )
+        elif result["ipv6_disabled"] is None:
+            # "ipv6_disabled" is not explicitly set, we always set it to False.
+            # Either "auto6" is enabled or static addresses are set, then this
+            # is clearly correct.
+            # Even with "auto6:False" and no IPv6 addresses, we at least enable
+            # IPv6 link local addresses.
+            result["ipv6_disabled"] = False
+
         if result["dhcp4"] is None:
             result["dhcp4"] = result["dhcp4_send_hostname"] is not None or not any(
                 [a for a in result["address"] if a["family"] == socket.AF_INET]
             )
+
         if result["auto6"] is None:
-            result["auto6"] = not any(
-                [a for a in result["address"] if a["family"] == socket.AF_INET6]
-            )
+            result["auto6"] = not has_ipv6_addresses
+
         if result["dhcp4_send_hostname"] is not None:
             if not result["dhcp4"]:
                 raise ValidationError(
@@ -1162,7 +1233,7 @@ class ArgValidator_DictConnection(ArgValidatorDict):
         "wireless",
         "dummy",
     ]
-    VALID_SLAVE_TYPES = ["bridge", "bond", "team"]
+    VALID_PORT_TYPES = ["bridge", "bond", "team"]
 
     def __init__(self):
         ArgValidatorDict.__init__(
@@ -1190,10 +1261,15 @@ class ArgValidator_DictConnection(ArgValidatorDict):
                 ),
                 ArgValidatorBool("autoconnect", default_value=True),
                 ArgValidatorStr(
-                    "slave_type",
-                    enum_values=ArgValidator_DictConnection.VALID_SLAVE_TYPES,
+                    "port_type",
+                    enum_values=ArgValidator_DictConnection.VALID_PORT_TYPES,
                 ),
-                ArgValidatorStr("master"),
+                ArgValidatorDeprecated(
+                    "slave_type",
+                    deprecated_by="port_type",
+                ),
+                ArgValidatorStr("controller"),
+                ArgValidatorDeprecated("master", deprecated_by="controller"),
                 ArgValidatorStr("interface_name", allow_empty=True),
                 ArgValidatorMac("mac"),
                 ArgValidatorNum(
@@ -1383,33 +1459,33 @@ class ArgValidator_DictConnection(ArgValidatorDict):
 
         if "type" in result:
 
-            if "master" in result:
-                if "slave_type" not in result:
-                    result["slave_type"] = None
-                if result["master"] == result["name"]:
+            if "controller" in result:
+                if "port_type" not in result:
+                    result["port_type"] = None
+                if result["controller"] == result["name"]:
                     raise ValidationError(
-                        name + ".master", '"master" cannot refer to itself'
+                        name + ".controller", '"controller" cannot refer to itself'
                     )
             else:
-                if "slave_type" in result:
+                if "port_type" in result:
                     raise ValidationError(
-                        name + ".slave_type",
-                        "'slave_type' requires a 'master' property",
+                        name + ".port_type",
+                        "'port_type' requires a 'controller' property",
                     )
 
             if "ip" in result:
-                if "master" in result:
+                if "controller" in result:
                     raise ValidationError(
-                        name + ".ip", 'a slave cannot have an "ip" property'
+                        name + ".ip", 'a port cannot have an "ip" property'
                     )
             else:
-                if "master" not in result:
+                if "controller" not in result:
                     result["ip"] = self.nested["ip"].get_default_value()
 
             if "zone" in result:
-                if "master" in result:
+                if "controller" in result:
                     raise ValidationError(
-                        name + ".zone", '"zone" cannot be configured for slave types'
+                        name + ".zone", '"zone" cannot be configured for port types'
                     )
             else:
                 result["zone"] = None
@@ -1604,13 +1680,14 @@ class ArgValidator_DictConnection(ArgValidatorDict):
                     "802.1x settings only allowed for ethernet or wireless interfaces.",
                 )
 
-        for k in self.VALID_FIELDS:
-            if k in result:
+        for name in self.VALID_FIELDS:
+            if name in result:
                 continue
-            v = self.nested[k]
-            vv = v.get_default_value()
-            if vv is not ArgValidator.MISSING:
-                result[k] = vv
+            validator = self.nested[name]
+            if not isinstance(validator, ArgValidatorDeprecated):
+                value = validator.get_default_value()
+                if value is not ArgValidator.MISSING:
+                    result[name] = value
 
         return result
 
@@ -1627,33 +1704,34 @@ class ArgValidator_ListConnections(ArgValidatorList):
     def _validate_post(self, value, name, result):
         for idx, connection in enumerate(result):
             if "type" in connection:
-                if connection["master"]:
+                if connection["controller"]:
                     c = ArgUtil.connection_find_by_name(
-                        connection["master"], result, idx
+                        connection["controller"], result, idx
                     )
                     if not c:
                         raise ValidationError(
-                            name + "[" + str(idx) + "].master",
-                            "references non-existing 'master' connection '%s'"
-                            % (connection["master"]),
+                            name + "[" + str(idx) + "].controller",
+                            "references non-existing 'controller' connection '%s'"
+                            % (connection["controller"]),
                         )
-                    if c["type"] not in ArgValidator_DictConnection.VALID_SLAVE_TYPES:
+                    if c["type"] not in ArgValidator_DictConnection.VALID_PORT_TYPES:
                         raise ValidationError(
-                            name + "[" + str(idx) + "].master",
-                            "references 'master' connection '%s' which is not a master "
-                            "type by '%s'" % (connection["master"], c["type"]),
+                            name + "[" + str(idx) + "].controller",
+                            "references 'controller' connection '%s' which is "
+                            "not a controller "
+                            "type by '%s'" % (connection["controller"], c["type"]),
                         )
-                    if connection["slave_type"] is None:
-                        connection["slave_type"] = c["type"]
-                    elif connection["slave_type"] != c["type"]:
+                    if connection["port_type"] is None:
+                        connection["port_type"] = c["type"]
+                    elif connection["port_type"] != c["type"]:
                         raise ValidationError(
-                            name + "[" + str(idx) + "].master",
-                            "references 'master' connection '%s' which is of type '%s' "
-                            "instead of slave_type '%s'"
+                            name + "[" + str(idx) + "].controller",
+                            "references 'controller' connection '%s' which is "
+                            "of type '%s' instead of port_type '%s'"
                             % (
-                                connection["master"],
+                                connection["controller"],
                                 c["type"],
-                                connection["slave_type"],
+                                connection["port_type"],
                             ),
                         )
                 if connection["parent"]:
@@ -1686,7 +1764,9 @@ class ArgValidator_ListConnections(ArgValidatorList):
             )
         ):
             try:
-                ArgUtil.connection_find_master(connection["parent"], connections, idx)
+                ArgUtil.connection_find_controller(
+                    connection["parent"], connections, idx
+                )
             except MyError:
                 raise ValidationError.from_connection(
                     idx,
@@ -1694,14 +1774,16 @@ class ArgValidator_ListConnections(ArgValidatorList):
                     "missing" % (connection["parent"]),
                 )
 
-        if (connection["master"]) and (mode == self.VALIDATE_ONE_MODE_INITSCRIPTS):
+        if (connection["controller"]) and (mode == self.VALIDATE_ONE_MODE_INITSCRIPTS):
             try:
-                ArgUtil.connection_find_master(connection["master"], connections, idx)
+                ArgUtil.connection_find_controller(
+                    connection["controller"], connections, idx
+                )
             except MyError:
                 raise ValidationError.from_connection(
                     idx,
-                    "profile references a master '%s' which has 'interface_name' "
-                    "missing" % (connection["master"]),
+                    "profile references a controller '%s' which has 'interface_name' "
+                    "missing" % (connection["controller"]),
                 )
 
         # check if 802.1x connection is valid
@@ -1722,4 +1804,21 @@ class ArgValidator_ListConnections(ArgValidatorList):
                     "Wireless WPA auth is not supported by initscripts. "
                     "Configure wireless connection in /etc/wpa_supplicant.conf "
                     "if you need to use initscripts.",
+                )
+
+        # initscripts does not support ip.dns_options, so raise errors when network
+        # provider is initscripts
+        if connection["ip"]["dns_options"]:
+            if mode == self.VALIDATE_ONE_MODE_INITSCRIPTS:
+                raise ValidationError.from_connection(
+                    idx,
+                    "ip.dns_options is not supported by initscripts.",
+                )
+        # initscripts does not support ip.ipv6_disabled, so raise errors when network
+        # provider is initscripts
+        if connection["ip"]["ipv6_disabled"]:
+            if mode == self.VALIDATE_ONE_MODE_INITSCRIPTS:
+                raise ValidationError.from_connection(
+                    idx,
+                    "ip.ipv6_disabled is not supported by initscripts.",
                 )

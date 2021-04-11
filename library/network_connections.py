@@ -2,6 +2,30 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
+DOCUMENTATION = """
+---
+module: network_connections
+author: Thomas Haller (@thom311)
+short_description: module for network role to manage connection profiles
+requirements: [pygobject, dbus, NetworkManager]
+version_added: "2.0"
+description:
+  - "WARNING: Do not use this module directly! It is only for role internal use."
+  - |
+    Manage networking profiles (connections) for NetworkManager and
+    initscripts networking providers. Documentation needs to be written. Note
+    that the network_connections module tightly integrates with the network
+    role and currently it is not expected to use this module outside the role.
+    Thus, consult README.md for examples for the role.  The requirements are
+    only for the NetworkManager (nm) provider.
+options: {}
+"""
+
+
 import errno
 import functools
 import os
@@ -16,7 +40,7 @@ import logging
 # pylint: disable=import-error, no-name-in-module
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network_lsr import ethtool  # noqa:E501
-from ansible.module_utils.network_lsr import MyError  # noqa:E501
+from ansible.module_utils.network_lsr.myerror import MyError  # noqa:E501
 
 from ansible.module_utils.network_lsr.argument_validator import (  # noqa:E501
     ArgUtil,
@@ -28,22 +52,6 @@ from ansible.module_utils.network_lsr.utils import Util  # noqa:E501
 from ansible.module_utils.network_lsr import nm_provider  # noqa:E501
 
 # pylint: enable=import-error, no-name-in-module
-
-
-DOCUMENTATION = """
----
-module: network_connections
-author: "Thomas Haller (thaller@redhat.com)"
-short_description: module for network role to manage connection profiles
-requirements: for 'nm' provider requires pygobject, dbus and NetworkManager.
-version_added: "2.0"
-description: Manage networking profiles (connections) for NetworkManager and
-  initscripts networking providers.
-options: Documentation needs to be written. Note that the network_connections
-  module tightly integrates with the network role and currently it is not
-  expected to use this module outside the role. Thus, consult README.md for
-  examples for the role.
-"""
 
 
 ###############################################################################
@@ -344,7 +352,7 @@ class IfcfgUtil:
                 ifcfg["PKEY"] = "yes"
                 ifcfg["PKEY_ID"] = str(connection["infiniband"]["p_key"])
                 if connection["parent"]:
-                    ifcfg["PHYSDEV"] = ArgUtil.connection_find_master(
+                    ifcfg["PHYSDEV"] = ArgUtil.connection_find_controller(
                         connection["parent"], connections, idx
                     )
         elif connection["type"] == "bridge":
@@ -361,7 +369,7 @@ class IfcfgUtil:
         elif connection["type"] == "vlan":
             ifcfg["VLAN"] = "yes"
             ifcfg["TYPE"] = "Vlan"
-            ifcfg["PHYSDEV"] = ArgUtil.connection_find_master(
+            ifcfg["PHYSDEV"] = ArgUtil.connection_find_controller(
                 connection["parent"], connections, idx
             )
             ifcfg["VID"] = str(connection["vlan"]["id"])
@@ -424,21 +432,23 @@ class IfcfgUtil:
         if ethtool_options:
             ifcfg["ETHTOOL_OPTS"] = ethtool_options
 
-        if connection["master"] is not None:
-            m = ArgUtil.connection_find_master(connection["master"], connections, idx)
-            if connection["slave_type"] == "bridge":
+        if connection["controller"] is not None:
+            m = ArgUtil.connection_find_controller(
+                connection["controller"], connections, idx
+            )
+            if connection["port_type"] == "bridge":
                 ifcfg["BRIDGE"] = m
-            elif connection["slave_type"] == "bond":
+            elif connection["port_type"] == "bond":
                 ifcfg["MASTER"] = m
                 ifcfg["SLAVE"] = "yes"
-            elif connection["slave_type"] == "team":
+            elif connection["port_type"] == "team":
                 ifcfg["TEAM_MASTER"] = m
                 if "TYPE" in ifcfg:
                     del ifcfg["TYPE"]
                 if connection["type"] != "team":
                     ifcfg["DEVICETYPE"] = "TeamPort"
             else:
-                raise MyError("invalid slave_type '%s'" % (connection["slave_type"]))
+                raise MyError("invalid port_type '%s'" % (connection["port_type"]))
 
             if ip["route_append_only"] and content_current:
                 route4_file = content_current["route"]
@@ -477,9 +487,11 @@ class IfcfgUtil:
             else:
                 ifcfg["IPV6INIT"] = "no"
             if addrs6:
-                ifcfg["IPVADDR"] = addrs6[0]["address"] + "/" + str(addrs6[0]["prefix"])
+                ifcfg["IPV6ADDR"] = (
+                    addrs6[0]["address"] + "/" + str(addrs6[0]["prefix"])
+                )
                 if len(addrs6) > 1:
-                    ifcfg["IPVADDR_SECONDARIES"] = " ".join(
+                    ifcfg["IPV6ADDR_SECONDARIES"] = " ".join(
                         [a["address"] + "/" + str(a["prefix"]) for a in addrs6[1:]]
                     )
             if ip["gateway6"] is not None:
@@ -687,7 +699,7 @@ class NMUtil:
             connection.add_setting(setting)
         return setting
 
-    def device_is_master_type(self, dev):
+    def device_is_controller_type(self, dev):
         if dev:
             NM = Util.NM()
             GObject = Util.GObject()
@@ -779,7 +791,7 @@ class NMUtil:
         if compare_flags is None:
             compare_flags = NM.SettingCompareFlags.IGNORE_TIMESTAMP
 
-        return not (not (con_a.compare(con_b, compare_flags)))
+        return con_a.compare(con_b, compare_flags)
 
     def connection_is_active(self, con):
         NM = Util.NM()
@@ -831,7 +843,7 @@ class NMUtil:
                 if connection["parent"]:
                     s_infiniband.set_property(
                         NM.SETTING_INFINIBAND_PARENT,
-                        ArgUtil.connection_find_master(
+                        ArgUtil.connection_find_controller(
                             connection["parent"], connections, idx
                         ),
                     )
@@ -859,7 +871,7 @@ class NMUtil:
             s_vlan.set_property(NM.SETTING_VLAN_ID, connection["vlan"]["id"])
             s_vlan.set_property(
                 NM.SETTING_VLAN_PARENT,
-                ArgUtil.connection_find_master_uuid(
+                ArgUtil.connection_find_controller_uuid(
                     connection["parent"], connections, idx
                 ),
             )
@@ -881,7 +893,9 @@ class NMUtil:
             s_macvlan.set_property(NM.SETTING_MACVLAN_TAP, connection["macvlan"]["tap"])
             s_macvlan.set_property(
                 NM.SETTING_MACVLAN_PARENT,
-                ArgUtil.connection_find_master(connection["parent"], connections, idx),
+                ArgUtil.connection_find_controller(
+                    connection["parent"], connections, idx
+                ),
             )
         elif connection["type"] == "wireless":
             s_con.set_property(
@@ -952,14 +966,14 @@ class NMUtil:
                 s_wired = self.connection_ensure_setting(con, NM.SettingWired)
                 s_wired.set_property(NM.SETTING_WIRED_MTU, connection["mtu"])
 
-        if connection["master"] is not None:
+        if connection["controller"] is not None:
             s_con.set_property(
-                NM.SETTING_CONNECTION_SLAVE_TYPE, connection["slave_type"]
+                NM.SETTING_CONNECTION_SLAVE_TYPE, connection["port_type"]
             )
             s_con.set_property(
                 NM.SETTING_CONNECTION_MASTER,
-                ArgUtil.connection_find_master_uuid(
-                    connection["master"], connections, idx
+                ArgUtil.connection_find_controller_uuid(
+                    connection["controller"], connections, idx
                 ),
             )
         else:
@@ -1002,13 +1016,24 @@ class NMUtil:
                     s_ip4.add_dns(d["address"])
             for s in ip["dns_search"]:
                 s_ip4.add_dns_search(s)
+            s_ip4.clear_dns_options(True)
+            for s in ip["dns_options"]:
+                s_ip4.add_dns_option(s)
 
-            if ip["auto6"]:
+            if ip["ipv6_disabled"]:
+                s_ip6.set_property(NM.SETTING_IP_CONFIG_METHOD, "disabled")
+            elif ip["auto6"]:
                 s_ip6.set_property(NM.SETTING_IP_CONFIG_METHOD, "auto")
             elif addrs6:
                 s_ip6.set_property(NM.SETTING_IP_CONFIG_METHOD, "manual")
             else:
+                # we should not set "ipv6.method=ignore". "ignore" is a legacy mode
+                # and not really useful. Instead, we should set "link-local" here.
+                #
+                # But that fix is a change in behavior for the role, so it needs special
+                # care.
                 s_ip6.set_property(NM.SETTING_IP_CONFIG_METHOD, "ignore")
+
             for a in addrs6:
                 s_ip6.add_address(
                     NM.IPAddress.new(a["family"], a["address"], a["prefix"])
@@ -1272,13 +1297,13 @@ class NMUtil:
 
             if ac_state == NM.ActiveConnectionState.ACTIVATING:
                 if (
-                    self.device_is_master_type(dev)
+                    self.device_is_controller_type(dev)
                     and dev_state >= NM.DeviceState.IP_CONFIG
                     and dev_state <= NM.DeviceState.ACTIVATED
                 ):
-                    # master connections qualify as activated once they
+                    # controller connections qualify as activated once they
                     # reach IP-Config state. That is because they may
-                    # wait for slave devices to attach
+                    # wait for port devices to attach
                     return True, None
                 # fall through
             elif ac_state == NM.ActiveConnectionState.ACTIVATED:
@@ -1401,7 +1426,7 @@ class RunEnvironment(object):
     def check_mode_set(self, check_mode, connections=None):
         c = self._check_mode
         self._check_mode = check_mode
-        assert (
+        if not (
             (c is None and check_mode in [CheckMode.PREPARE])
             or (
                 c == CheckMode.PREPARE
@@ -1410,7 +1435,12 @@ class RunEnvironment(object):
             or (c == CheckMode.PRE_RUN and check_mode in [CheckMode.REAL_RUN])
             or (c == CheckMode.REAL_RUN and check_mode in [CheckMode.DONE])
             or (c == CheckMode.DRY_RUN and check_mode in [CheckMode.DONE])
-        )
+        ):
+            raise AssertionError(
+                "updating check_mode value from {0} into {1} is incorrect".format(
+                    c, check_mode
+                )
+            )
         self._check_mode_changed(c, check_mode, connections)
 
 
@@ -1472,7 +1502,8 @@ class RunEnvironmentAnsible(RunEnvironment):
         warn_traceback=False,
         force_fail=False,
     ):
-        assert idx >= -1
+        if not idx >= -1:
+            raise AssertionError("idx {0} is less than -1".format(idx))
         self._log_idx += 1
         self.run_results[idx]["log"].append((severity, msg, self._log_idx))
         if severity == LogLevel.ERROR:
@@ -1609,14 +1640,15 @@ class Cmd(object):
     def connections_data(self):
         c = self._connections_data
         if c is None:
-            assert self.check_mode in [
+            if self.check_mode not in [
                 CheckMode.DRY_RUN,
                 CheckMode.PRE_RUN,
                 CheckMode.REAL_RUN,
-            ]
-            c = []
-            for _ in range(0, len(self.connections)):
-                c.append({"changed": False})
+            ]:
+                raise AssertionError(
+                    "invalid value {0} for self.check_mode".format(self.check_mode)
+                )
+            c = [{"changed": False}] * len(self.connections)
             self._connections_data = c
         return c
 
@@ -1625,11 +1657,14 @@ class Cmd(object):
             c["changed"] = False
 
     def connections_data_set_changed(self, idx, changed=True):
-        assert self._check_mode in [
+        if self._check_mode not in [
             CheckMode.PRE_RUN,
             CheckMode.DRY_RUN,
             CheckMode.REAL_RUN,
-        ]
+        ]:
+            raise AssertionError(
+                "invalid value {0} for self._check_mode".format(self._check_mode)
+            )
         if not changed:
             return
         self.connections_data[idx]["changed"] = changed
@@ -1699,7 +1734,10 @@ class Cmd(object):
         # modify the connection.
 
         con = self.connections[idx]
-        assert con["state"] in ["up", "down"]
+        if con["state"] not in ["up", "down"]:
+            raise AssertionError(
+                "connection state {0} not 'up' or 'down'".format(con["state"])
+            )
 
         # also check, if the current profile is 'up' with a 'type' (which
         # possibly modifies the connection as well)
@@ -1747,7 +1785,9 @@ class Cmd(object):
         elif self._check_mode != CheckMode.DONE:
             c = CheckMode.DONE
         else:
-            assert False
+            raise AssertionError(
+                "invalid value {0} for self._check_mode".format(self._check_mode)
+            )
         self._check_mode = c
         self.run_env.check_mode_set(c)
         return c
@@ -1913,7 +1953,12 @@ class Cmd_nm(Cmd):
 
             name = connection["name"]
             if not name:
-                assert connection["persistent_state"] == "absent"
+                if not connection["persistent_state"] == "absent":
+                    raise AssertionError(
+                        "persistent_state must be 'absent' not {0} when there is no connection 'name'".format(
+                            connection["persistent_state"]
+                        )
+                    )
                 continue
             if name in names:
                 exists = names[name]["nm.exists"]
@@ -1990,7 +2035,7 @@ class Cmd_nm(Cmd):
                     idx, "ethtool.%s specified but not supported by NM", specified
                 )
 
-            for option, _ in specified.items():
+            for option in specified.keys():
                 nm_name = nm_get_name_fcnt(option)
                 if not nm_name:
                     self.log_fatal(

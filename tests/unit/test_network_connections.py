@@ -162,6 +162,7 @@ class TestValidator(unittest.TestCase):
                 "gateway4": None,
                 "route_metric4": None,
                 "auto6": True,
+                "ipv6_disabled": False,
                 "dhcp4": True,
                 "address": [],
                 "defroute": None,
@@ -171,16 +172,17 @@ class TestValidator(unittest.TestCase):
                 "route_metric6": None,
                 "dhcp4_send_hostname": None,
                 "dns": [],
+                "dns_options": [],
                 "dns_search": [],
             },
             "mac": None,
-            "master": None,
+            "controller": None,
             "ieee802_1x": None,
             "wireless": None,
             "mtu": None,
             "name": "5",
             "parent": None,
-            "slave_type": None,
+            "port_type": None,
             "zone": None,
         }
 
@@ -454,6 +456,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -463,17 +466,18 @@ class TestValidator(unittest.TestCase):
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": None,
                     "type": "ethernet",
                     "zone": None,
@@ -507,6 +511,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -514,19 +519,20 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -554,6 +560,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -561,19 +568,20 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -637,11 +645,13 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": False,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dns": [],
                         "address": [
                             {
@@ -656,14 +666,14 @@ class TestValidator(unittest.TestCase):
                         "route": [],
                     },
                     "mac": "52:54:00:44:9f:ba",
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": 1450,
                     "name": "prod1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -701,11 +711,13 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": False,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dns": [{"address": "192.168.174.1", "family": socket.AF_INET}],
                         "address": [
                             {
@@ -720,14 +732,14 @@ class TestValidator(unittest.TestCase):
                         "route": [],
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "prod1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -741,6 +753,107 @@ class TestValidator(unittest.TestCase):
                     "type": "ethernet",
                     "autoconnect": "yes",
                     "ip": {"address": "192.168.174.5/24", "dns": "192.168.174.1"},
+                }
+            ],
+        )
+
+    def test_ipv6_static(self):
+        self.maxDiff = None
+        self.do_connections_validate(
+            [
+                {
+                    "actions": ["present", "up"],
+                    "autoconnect": True,
+                    "check_iface_exists": True,
+                    "ethernet": ETHERNET_DEFAULTS,
+                    "ethtool": ETHTOOL_DEFAULTS,
+                    "force_state_change": None,
+                    "ignore_errors": None,
+                    "interface_name": "prod1",
+                    "ip": {
+                        "gateway6": "2001:db8::1",
+                        "gateway4": None,
+                        "route_metric4": None,
+                        "auto6": False,
+                        "ipv6_disabled": False,
+                        "dhcp4": False,
+                        "address": [
+                            {
+                                "address": "2001:db8::2",
+                                "family": socket.AF_INET6,
+                                "prefix": 32,
+                            },
+                            {
+                                "address": "2001:db8::3",
+                                "family": socket.AF_INET6,
+                                "prefix": 32,
+                            },
+                            {
+                                "address": "2001:db8::4",
+                                "family": socket.AF_INET6,
+                                "prefix": 32,
+                            },
+                        ],
+                        "route_append_only": False,
+                        "rule_append_only": False,
+                        "route": [],
+                        "dns": [],
+                        "dns_options": [],
+                        "dns_search": [],
+                        "route_metric6": None,
+                        "dhcp4_send_hostname": None,
+                    },
+                    "mac": None,
+                    "controller": None,
+                    "ieee802_1x": None,
+                    "wireless": None,
+                    "mtu": None,
+                    "name": "prod1",
+                    "parent": None,
+                    "persistent_state": "present",
+                    "port_type": None,
+                    "state": "up",
+                    "type": "ethernet",
+                    "wait": None,
+                    "zone": None,
+                }
+            ],
+            [
+                {
+                    "name": "prod1",
+                    "state": "up",
+                    "type": "ethernet",
+                    "ip": {
+                        "dhcp4": "no",
+                        "auto6": "no",
+                        "address": [
+                            "2001:db8::2/32",
+                            "2001:db8::3/32",
+                            "2001:db8::4/32",
+                        ],
+                        "gateway6": "2001:db8::1",
+                    },
+                }
+            ],
+            initscripts_dict_expected=[
+                {
+                    "ifcfg": {
+                        "BOOTPROTO": "none",
+                        "IPV6INIT": "yes",
+                        "IPV6_AUTOCONF": "no",
+                        "IPV6ADDR": "2001:db8::2/32",
+                        "IPV6ADDR_SECONDARIES": "2001:db8::3/32 2001:db8::4/32",
+                        "IPV6_DEFAULTGW": "2001:db8::1",
+                        "NM_CONTROLLED": "no",
+                        "ONBOOT": "yes",
+                        "TYPE": "Ethernet",
+                        "DEVICE": "prod1",
+                    },
+                    "keys": None,
+                    "route": None,
+                    "route6": None,
+                    "rule": None,
+                    "rule6": None,
                 }
             ],
         )
@@ -761,6 +874,7 @@ class TestValidator(unittest.TestCase):
                     "ip": {
                         "dhcp4": False,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "address": [
                             {
                                 "prefix": 24,
@@ -779,6 +893,7 @@ class TestValidator(unittest.TestCase):
                         "route": [],
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
@@ -786,14 +901,14 @@ class TestValidator(unittest.TestCase):
                         "dns": [],
                     },
                     "mac": "52:54:00:44:9f:ba",
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": 1450,
                     "name": "prod1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -812,11 +927,13 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": False,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
                         "auto6": False,
+                        "ipv6_disabled": False,
                         "dns": [],
                         "address": [
                             {
@@ -844,14 +961,14 @@ class TestValidator(unittest.TestCase):
                         ],
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "prod.100",
                     "parent": "prod1",
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "vlan",
                     "vlan": {"id": 100},
@@ -1088,21 +1205,23 @@ class TestValidator(unittest.TestCase):
                         "route": [],
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
+                        "ipv6_disabled": False,
                         "dns": [],
                     },
                     "mac": "52:54:00:44:9f:ba",
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": 1450,
                     "name": "prod1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -1121,10 +1240,12 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": False,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
+                        "ipv6_disabled": False,
                         "auto6": False,
                         "dns": [],
                         "address": [
@@ -1153,14 +1274,14 @@ class TestValidator(unittest.TestCase):
                         ],
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "prod.100",
                     "parent": "prod1",
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "vlan",
                     "vlan": {"id": 101},
@@ -1226,6 +1347,8 @@ class TestValidator(unittest.TestCase):
                         "route": [],
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
+                        "ipv6_disabled": False,
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
@@ -1233,14 +1356,14 @@ class TestValidator(unittest.TestCase):
                         "dns": [],
                     },
                     "mac": "33:24:10:24:2f:b9",
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": 1450,
                     "name": "eth0-parent",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -1258,6 +1381,8 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": False,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
+                        "ipv6_disabled": False,
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
@@ -1286,14 +1411,14 @@ class TestValidator(unittest.TestCase):
                     },
                     "mac": None,
                     "macvlan": {"mode": "bridge", "promiscuous": True, "tap": False},
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "veth0.0",
                     "parent": "eth0-parent",
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "macvlan",
                     "wait": None,
@@ -1311,10 +1436,12 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": False,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
+                        "ipv6_disabled": False,
                         "auto6": False,
                         "dns": [],
                         "address": [
@@ -1339,14 +1466,14 @@ class TestValidator(unittest.TestCase):
                     },
                     "mac": None,
                     "macvlan": {"mode": "passthru", "promiscuous": False, "tap": True},
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "veth0.1",
                     "parent": "eth0-parent",
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "macvlan",
                     "wait": None,
@@ -1417,9 +1544,11 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": False,
                         "dhcp4_send_hostname": None,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "gateway4": None,
                         "gateway6": None,
+                        "ipv6_disabled": False,
                         "route": [],
                         "route_append_only": False,
                         "route_metric4": None,
@@ -1427,14 +1556,14 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "prod2",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "bridge",
                     "wait": None,
@@ -1456,9 +1585,11 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "gateway4": None,
                         "gateway6": None,
+                        "ipv6_disabled": False,
                         "route": [],
                         "route_append_only": False,
                         "route_metric4": None,
@@ -1466,14 +1597,14 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                     },
                     "mac": None,
-                    "master": "prod2",
+                    "controller": "prod2",
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
-                    "name": "prod2-slave1",
+                    "name": "prod2-port1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": "bridge",
+                    "port_type": "bridge",
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -1489,11 +1620,11 @@ class TestValidator(unittest.TestCase):
                     "ip": {"dhcp4": False, "auto6": False},
                 },
                 {
-                    "name": "prod2-slave1",
+                    "name": "prod2-port1",
                     "state": "up",
                     "type": "ethernet",
                     "interface_name": "eth1",
-                    "master": "prod2",
+                    "controller": "prod2",
                 },
             ],
         )
@@ -1516,11 +1647,13 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": True,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dns": [],
                         "address": [],
                         "defroute": None,
@@ -1529,14 +1662,14 @@ class TestValidator(unittest.TestCase):
                         "route": [],
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "bond1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "bond",
                     "wait": None,
@@ -1564,11 +1697,13 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": True,
                         "route_metric6": None,
                         "route_metric4": None,
+                        "dns_options": [],
                         "dns_search": [],
                         "dhcp4_send_hostname": None,
                         "gateway6": None,
                         "gateway4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dns": [],
                         "address": [],
                         "defroute": None,
@@ -1577,14 +1712,14 @@ class TestValidator(unittest.TestCase):
                         "route": [],
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "bond1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "bond",
                     "wait": None,
@@ -1625,6 +1760,7 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
                         "gateway4": None,
@@ -1632,17 +1768,18 @@ class TestValidator(unittest.TestCase):
                         "route_metric4": None,
                         "route_metric6": None,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                     },
                     "mac": "aa:bb:cc:dd:ee:ff",
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": None,
                     "type": "ethernet",
                     "zone": None,
@@ -1669,6 +1806,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -1676,19 +1814,20 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "5",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -1737,14 +1876,16 @@ class TestValidator(unittest.TestCase):
                     "ethtool": ETHTOOL_DEFAULTS,
                     "force_state_change": None,
                     "ignore_errors": None,
-                    "interface_name": "6643-master",
+                    "interface_name": "6643-controller",
                     "ip": {
                         "address": [],
                         "defroute": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "gateway4": None,
                         "gateway6": None,
@@ -1755,14 +1896,14 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
-                    "name": "6643-master",
+                    "name": "6643-controller",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "bridge",
                     "wait": None,
@@ -1784,9 +1925,11 @@ class TestValidator(unittest.TestCase):
                         "dhcp4_send_hostname": None,
                         "dhcp4": True,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "gateway4": None,
                         "gateway6": None,
+                        "ipv6_disabled": False,
                         "route": [],
                         "route_append_only": False,
                         "route_metric4": None,
@@ -1794,14 +1937,14 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                     },
                     "mac": None,
-                    "master": "6643-master",
+                    "controller": "6643-controller",
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "6643",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": "bridge",
+                    "port_type": "bridge",
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -1809,12 +1952,12 @@ class TestValidator(unittest.TestCase):
                 },
             ],
             [
-                {"name": "6643-master", "state": "up", "type": "bridge"},
+                {"name": "6643-controller", "state": "up", "type": "bridge"},
                 {
                     "name": "6643",
                     "state": "up",
                     "type": "ethernet",
-                    "master": "6643-master",
+                    "controller": "6643-controller",
                 },
             ],
         )
@@ -1839,9 +1982,11 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "gateway4": None,
                         "gateway6": None,
+                        "ipv6_disabled": False,
                         "route": [],
                         "route_append_only": False,
                         "route_metric4": None,
@@ -1849,14 +1994,14 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "infiniband.1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "infiniband",
                     "wait": None,
@@ -1911,9 +2056,11 @@ class TestValidator(unittest.TestCase):
                         "dhcp4": True,
                         "dhcp4_send_hostname": None,
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "gateway4": None,
                         "gateway6": None,
+                        "ipv6_disabled": False,
                         "route": [],
                         "route_append_only": False,
                         "route_metric4": None,
@@ -1922,14 +2069,14 @@ class TestValidator(unittest.TestCase):
                     },
                     "mac": "11:22:33:44:55:66:77:88:99:00:"
                     "11:22:33:44:55:66:77:88:99:00",
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "infiniband.2",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "infiniband",
                     "wait": None,
@@ -1988,6 +2135,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -2010,19 +2158,20 @@ class TestValidator(unittest.TestCase):
                             },
                         ],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": ["aa", "bb"],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "555",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -2082,6 +2231,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -2111,19 +2261,20 @@ class TestValidator(unittest.TestCase):
                             },
                         ],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": ["aa", "bb"],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": None,
                     "mtu": None,
                     "name": "e556",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -2218,6 +2369,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -2225,12 +2377,13 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": {
                         "identity": "myhost",
                         "eap": "tls",
@@ -2248,7 +2401,7 @@ class TestValidator(unittest.TestCase):
                     "name": "eth0",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -2294,6 +2447,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -2301,12 +2455,13 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": {
                         "identity": "myhost",
                         "eap": "tls",
@@ -2324,7 +2479,7 @@ class TestValidator(unittest.TestCase):
                     "name": "eth0",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -2370,6 +2525,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -2377,12 +2533,13 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": {
                         "identity": "myhost",
                         "eap": "tls",
@@ -2400,7 +2557,7 @@ class TestValidator(unittest.TestCase):
                     "name": "eth0",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "ethernet",
                     "wait": None,
@@ -2444,6 +2601,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -2451,12 +2609,13 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": None,
                     "wireless": {
                         "ssid": "test wireless network",
@@ -2467,7 +2626,7 @@ class TestValidator(unittest.TestCase):
                     "name": "wireless1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "wireless",
                     "wait": None,
@@ -2508,6 +2667,7 @@ class TestValidator(unittest.TestCase):
                         "gateway4": None,
                         "route_metric4": None,
                         "auto6": True,
+                        "ipv6_disabled": False,
                         "dhcp4": True,
                         "address": [],
                         "defroute": None,
@@ -2515,12 +2675,13 @@ class TestValidator(unittest.TestCase):
                         "rule_append_only": False,
                         "route": [],
                         "dns": [],
+                        "dns_options": [],
                         "dns_search": [],
                         "route_metric6": None,
                         "dhcp4_send_hostname": None,
                     },
                     "mac": None,
-                    "master": None,
+                    "controller": None,
                     "ieee802_1x": {
                         "identity": "myhost",
                         "eap": "tls",
@@ -2542,7 +2703,7 @@ class TestValidator(unittest.TestCase):
                     "name": "wireless1",
                     "parent": None,
                     "persistent_state": "present",
-                    "slave_type": None,
+                    "port_type": None,
                     "state": "up",
                     "type": "wireless",
                     "wait": None,
@@ -3214,6 +3375,187 @@ class TestValidator(unittest.TestCase):
         self.assertValidationError(validator, input_connection)
         input_connection.update({"state": "absent"})
         self.assertValidationError(validator, input_connection)
+
+    def test_dns_options_argvalidator(self):
+        """
+        Test that argvalidator for validating dns_options value is correctly defined.
+        """
+        validator = network_lsr.argument_validator.ArgValidator_DictIP()
+
+        false_testcase_1 = {
+            "dns_options": ["attempts:01"],
+        }
+        false_testcase_2 = {
+            "dns_options": ["debug$"],
+        }
+        false_testcase_3 = {
+            "dns_options": ["edns00"],
+        }
+        false_testcase_4 = {
+            "dns_options": ["ndots:"],
+        }
+        false_testcase_5 = {
+            "dns_options": ["no-check-name"],
+        }
+        false_testcase_6 = {
+            "dns_options": ["no-rel0ad"],
+        }
+        false_testcase_7 = {
+            "dns_options": ["bugno-tld-query"],
+        }
+        false_testcase_8 = {
+            "dns_options": ["etator"],
+        }
+        false_testcase_9 = {
+            "dns_options": ["singlerequest"],
+        }
+        false_testcase_10 = {
+            "dns_options": ["single-request-reopen:2"],
+        }
+        false_testcase_11 = {
+            "dns_options": ["timeout"],
+        }
+        false_testcase_12 = {
+            "dns_options": ["*trust-ad*"],
+        }
+        false_testcase_13 = {
+            "dns_options": ["use1-vc2-use-vc"],
+        }
+
+        self.assertValidationError(validator, false_testcase_1)
+        self.assertValidationError(validator, false_testcase_2)
+        self.assertValidationError(validator, false_testcase_3)
+        self.assertValidationError(validator, false_testcase_4)
+        self.assertValidationError(validator, false_testcase_5)
+        self.assertValidationError(validator, false_testcase_6)
+        self.assertValidationError(validator, false_testcase_7)
+        self.assertValidationError(validator, false_testcase_8)
+        self.assertValidationError(validator, false_testcase_9)
+        self.assertValidationError(validator, false_testcase_10)
+        self.assertValidationError(validator, false_testcase_11)
+        self.assertValidationError(validator, false_testcase_12)
+        self.assertValidationError(validator, false_testcase_13)
+
+        true_testcase_1 = {
+            "dns_options": ["attempts:3"],
+        }
+        true_testcase_2 = {
+            "dns_options": ["debug"],
+        }
+        true_testcase_3 = {
+            "dns_options": ["ndots:3", "single-request-reopen"],
+        }
+        true_testcase_4 = {
+            "dns_options": ["ndots:2", "timeout:3"],
+        }
+        true_testcase_5 = {
+            "dns_options": ["no-check-names"],
+        }
+        true_testcase_6 = {
+            "dns_options": ["no-reload"],
+        }
+        true_testcase_7 = {
+            "dns_options": ["no-tld-query"],
+        }
+        true_testcase_8 = {
+            "dns_options": ["rotate"],
+        }
+        true_testcase_9 = {
+            "dns_options": ["single-request"],
+        }
+        true_testcase_10 = {
+            "dns_options": ["single-request-reopen"],
+        }
+        true_testcase_11 = {
+            "dns_options": ["trust-ad"],
+        }
+        true_testcase_12 = {
+            "dns_options": ["use-vc"],
+        }
+
+        self.assertEqual(
+            validator.validate(true_testcase_1)["dns_options"], ["attempts:3"]
+        )
+        self.assertEqual(validator.validate(true_testcase_2)["dns_options"], ["debug"])
+        self.assertEqual(
+            validator.validate(true_testcase_3)["dns_options"],
+            ["ndots:3", "single-request-reopen"],
+        )
+        self.assertEqual(
+            validator.validate(true_testcase_4)["dns_options"], ["ndots:2", "timeout:3"]
+        )
+        self.assertEqual(
+            validator.validate(true_testcase_5)["dns_options"], ["no-check-names"]
+        )
+        self.assertEqual(
+            validator.validate(true_testcase_6)["dns_options"], ["no-reload"]
+        )
+        self.assertEqual(
+            validator.validate(true_testcase_7)["dns_options"], ["no-tld-query"]
+        )
+        self.assertEqual(validator.validate(true_testcase_8)["dns_options"], ["rotate"])
+        self.assertEqual(
+            validator.validate(true_testcase_9)["dns_options"], ["single-request"]
+        )
+        self.assertEqual(
+            validator.validate(true_testcase_10)["dns_options"],
+            ["single-request-reopen"],
+        )
+        self.assertEqual(
+            validator.validate(true_testcase_11)["dns_options"], ["trust-ad"]
+        )
+        self.assertEqual(
+            validator.validate(true_testcase_12)["dns_options"], ["use-vc"]
+        )
+
+    def test_set_deprecated_master(self):
+        """
+        When passing the deprecated "master" it is updated to "controller".
+        """
+        input_connections = [
+            {
+                "name": "prod2",
+                "state": "up",
+                "type": "bridge",
+            },
+            {
+                "name": "prod2-port1",
+                "state": "up",
+                "type": "ethernet",
+                "interface_name": "eth1",
+                "master": "prod2",
+            },
+        ]
+        connections = ARGS_CONNECTIONS.validate(input_connections)
+        self.assertTrue(len(connections) == 2)
+        for connection in connections:
+            self.assertTrue("controller" in connection)
+            self.assertTrue("master" not in connection)
+
+    def test_set_deprecated_slave_type(self):
+        """
+        When passing the deprecated "slave_type" it is updated to "port_type".
+        """
+        input_connections = [
+            {
+                "name": "prod2",
+                "state": "up",
+                "type": "bridge",
+            },
+            {
+                "name": "prod2-port1",
+                "state": "up",
+                "type": "ethernet",
+                "interface_name": "eth1",
+                "controller": "prod2",
+                "slave_type": "bridge",
+            },
+        ]
+        connections = ARGS_CONNECTIONS.validate(input_connections)
+        self.assertTrue(len(connections) == 2)
+        for connection in connections:
+            self.assertTrue("port_type" in connection)
+            self.assertTrue("slave_type" not in connection)
 
 
 @my_test_skipIf(nmutil is None, "no support for NM (libnm via pygobject)")
